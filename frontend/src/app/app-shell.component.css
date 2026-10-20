@@ -98,9 +98,14 @@
 
 .menu {
   display: grid;
-  gap: 10px;
+  gap: 14px;
   overflow-y: auto;
   padding-right: 2px;
+}
+
+.menu-group {
+  display: grid;
+  gap: 8px;
 }
 
 .menu-heading {
@@ -160,21 +165,12 @@
   justify-items: center;
 }
 
-.sidebar.is-collapsed .menu-item {
-  grid-template-columns: 1fr;
+.sidebar.is-collapsed .menu-group {
   justify-items: center;
-  width: 56px;
-  min-height: 56px;
-  padding: 10px 8px;
 }
 
-.sidebar.is-collapsed .menu-icon {
-  margin: 0;
-}
-
-.sidebar.is-collapsed .menu {
-  justify-items: center;
-  gap: 8px;
+.sidebar.is-collapsed .menu-heading {
+  display: none;
 }
 
 .sidebar.is-collapsed .menu-item {

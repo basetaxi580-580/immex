@@ -32,7 +32,7 @@ import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResu
         </div>
       </section>
 
-      <section class="grid">
+      <section class="grid" id="form-card">
         <article class="card form-card">
           <div class="card-head">
             <h2>{{ editingId ? 'Editar movimiento' : 'Nuevo movimiento' }}</h2>
@@ -167,7 +167,7 @@ import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResu
         </article>
       </section>
 
-      <section class="module-grid">
+      <section class="module-grid" id="flow-section">
         <article class="card module-card">
           <div class="card-head">
             <h2>Flujo general</h2>
@@ -209,7 +209,7 @@ import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResu
         </article>
       </section>
 
-      <section class="module-grid lower-grid">
+      <section class="module-grid lower-grid" id="peps-section">
         <article class="card module-card">
           <div class="card-head">
             <h2>PEPS</h2>
@@ -261,7 +261,7 @@ import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResu
         </article>
       </section>
 
-      <section class="card audit-card">
+      <section class="card audit-card" id="audit-section">
         <div class="card-head">
           <h2>Trazabilidad</h2>
           <span>quién, cuándo y por qué</span>

@@ -27,6 +27,11 @@ type SidebarLink = {
   exact?: boolean;
 };
 
+type SidebarGroup = {
+  heading: string;
+  items: SidebarLink[];
+};
+
 @Component({
   selector: 'app-root',
   standalone: true,
@@ -55,24 +60,26 @@ type SidebarLink = {
         </div>
 
         <nav class="menu" aria-label="Navegación principal">
-          <p class="menu-heading">Secciones</p>
+          <section class="menu-group" *ngFor="let group of navGroups">
+            <p class="menu-heading">{{ group.heading }}</p>
 
-          <a
-            *ngFor="let item of navItems"
-            class="menu-item"
-            routerLinkActive="active"
-            [routerLink]="item.route"
-            [fragment]="item.fragment || undefined"
-            [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
-            (click)="collapseOnMobile()"
-            [attr.title]="item.label"
-          >
-            <span class="menu-icon"><fa-icon [icon]="item.icon"></fa-icon></span>
-            <span class="menu-copy">
-              <span class="menu-title">{{ item.label }}</span>
-              <small>{{ item.description }}</small>
-            </span>
-          </a>
+            <a
+              *ngFor="let item of group.items"
+              class="menu-item"
+              routerLinkActive="active"
+              [routerLink]="item.route"
+              [fragment]="item.fragment || undefined"
+              [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+              (click)="collapseOnMobile()"
+              [attr.title]="item.label"
+            >
+              <span class="menu-icon"><fa-icon [icon]="item.icon"></fa-icon></span>
+              <span class="menu-copy">
+                <span class="menu-title">{{ item.label }}</span>
+                <small>{{ item.description }}</small>
+              </span>
+            </a>
+          </section>
         </nav>
 
         <div class="side-note">
@@ -107,84 +114,106 @@ export class AppShellComponent {
 
   protected isSidebarOpen = typeof window !== 'undefined' && window.innerWidth > 1100;
 
-  protected readonly navItems: SidebarLink[] = [
+  protected readonly navGroups: SidebarGroup[] = [
     {
-      label: 'Panel general',
-      description: 'Resumen ejecutivo y métricas clave',
-      route: '/dashboard',
-      fragment: 'dashboard',
-      icon: faChartLine,
-      exact: true,
+      heading: 'Visión general',
+      items: [
+        {
+          label: 'Panel general',
+          description: 'Resumen ejecutivo y métricas clave',
+          route: '/dashboard',
+          fragment: 'dashboard',
+          icon: faChartLine,
+          exact: true,
+        },
+        {
+          label: 'Inventario / Pedimentos',
+          description: 'Altas, filtros y edición',
+          route: '/inventory',
+          fragment: 'inventory-hero',
+          icon: faBoxesStacked,
+          exact: true,
+        },
+      ],
     },
     {
-      label: 'Inventario / Pedimentos',
-      description: 'Altas, filtros y edición',
-      route: '/inventory',
-      icon: faBoxesStacked,
-      exact: true,
+      heading: 'Operación',
+      items: [
+        {
+          label: 'Captura de movimiento',
+          description: 'Alta y edición del registro',
+          route: '/dashboard',
+          fragment: 'form-card',
+          icon: faClipboardList,
+        },
+        {
+          label: 'Ledger IMMEX',
+          description: 'Tabla detallada de movimientos',
+          route: '/dashboard',
+          fragment: 'list-card',
+          icon: faFileInvoiceDollar,
+        },
+        {
+          label: 'Flujo general',
+          description: 'Entrada, consumo y exportación',
+          route: '/dashboard',
+          fragment: 'flow-section',
+          icon: faTruckRampBox,
+        },
+      ],
     },
     {
-      label: 'Captura de movimiento',
-      description: 'Alta y edición del registro',
-      route: '/dashboard',
-      fragment: 'form-card',
-      icon: faClipboardList,
+      heading: 'Análisis y control',
+      items: [
+        {
+          label: 'Resumen de operación',
+          description: 'Conteos y saldos generales',
+          route: '/dashboard',
+          fragment: 'summary-section',
+          icon: faChartLine,
+        },
+        {
+          label: 'Excepciones y riesgo',
+          description: 'Alertas y materiales críticos',
+          route: '/dashboard',
+          fragment: 'risk-section',
+          icon: faTriangleExclamation,
+        },
+        {
+          label: 'PEPS',
+          description: 'Consumo simulado',
+          route: '/dashboard',
+          fragment: 'peps-section',
+          icon: faClockRotateLeft,
+        },
+        {
+          label: 'Cierre mensual',
+          description: 'Reporte listo para revisión',
+          route: '/dashboard',
+          fragment: 'close-section',
+          icon: faFileCircleCheck,
+        },
+        {
+          label: 'Trazabilidad',
+          description: 'Quién, cuándo y por qué',
+          route: '/dashboard',
+          fragment: 'audit-section',
+          icon: faUserShield,
+        },
+      ],
     },
     {
-      label: 'Ledger IMMEX',
-      description: 'Tabla detallada de movimientos',
-      route: '/dashboard',
-      fragment: 'list-card',
-      icon: faFileInvoiceDollar,
-    },
-    {
-      label: 'Flujo general',
-      description: 'Entrada, consumo y exportación',
-      route: '/dashboard',
-      fragment: 'flow-section',
-      icon: faTruckRampBox,
-    },
-    {
-      label: 'Resumen de operación',
-      description: 'Conteos y saldos generales',
-      route: '/dashboard',
-      fragment: 'summary-section',
-      icon: faChartLine,
-    },
-    {
-      label: 'Excepciones y riesgo',
-      description: 'Alertas y materiales críticos',
-      route: '/dashboard',
-      fragment: 'risk-section',
-      icon: faTriangleExclamation,
-    },
-    {
-      label: 'PEPS',
-      description: 'Consumo simulado',
-      route: '/dashboard',
-      fragment: 'peps-section',
-      icon: faClockRotateLeft,
-    },
-    {
-      label: 'Cierre mensual',
-      description: 'Reporte listo para revisión',
-      route: '/dashboard',
-      fragment: 'close-section',
-      icon: faFileCircleCheck,
-    },
-    {
-      label: 'Trazabilidad',
-      description: 'Quién, cuándo y por qué',
-      route: '/dashboard',
-      fragment: 'audit-section',
-      icon: faUserShield,
-    },
-    {
-      label: 'Búsqueda rápida',
-      description: 'Filtrar y localizar registros',
-      route: '/inventory',
-      icon: faMagnifyingGlass,
-      exact: true,
+      heading: 'Búsqueda',
+      items: [
+        {
+          label: 'Buscar registros',
+          description: 'Filtrar y localizar información',
+          route: '/inventory',
+          fragment: 'inventory-table',
+          icon: faMagnifyingGlass,
+          exact: true,
+        },
+      ],
     },
   ];
 

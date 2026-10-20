@@ -26,7 +26,7 @@ import { ImmexRecord } from './models';
         </div>
       </section>
 
-      <section class="module-grid">
+      <section class="module-grid" id="inventory-grid">
         <article class="card filter-card">
           <div class="card-head">
             <h2>Filtros</h2>
@@ -155,7 +155,7 @@ import { ImmexRecord } from './models';
         </article>
       </section>
 
-      <section class="card table-card">
+      <section class="card table-card" id="inventory-table">
         <div class="card-head">
           <h2>Inventario detallado</h2>
           <span>{{ filteredRecords.length }} resultados</span>
