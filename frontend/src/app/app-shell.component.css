@@ -6,91 +6,163 @@
 .app-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  background:
-    linear-gradient(180deg, #f8fafc 0%, #f7f7fb 100%);
+  grid-template-columns: 290px minmax(0, 1fr);
+  background: #f3f4f6;
   color: #111827;
 }
 
 .sidebar {
-  padding: 24px 20px;
-  border-right: 1px solid rgba(148, 163, 184, 0.2);
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(12px);
+  padding: 20px 18px;
+  border-right: 1px solid rgba(15, 23, 42, 0.12);
+  background: #0f172a;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
+  transition: width 0.2s ease, padding 0.2s ease;
+  width: 290px;
+  overflow: hidden;
+}
+
+.sidebar.is-collapsed {
+  width: 88px;
+  padding-inline: 12px;
+}
+
+.sidebar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .brand-mark {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   border-radius: 14px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, #0f172a, #334155);
+  background: #1d4ed8;
   color: white;
   font-weight: 800;
-  font-size: 1.05rem;
+  font-size: 1rem;
+  flex: 0 0 auto;
 }
 
-.brand p,
+.brand-text p,
 .eyebrow,
-.side-note p {
+.side-note p,
+.menu-heading {
   margin: 0;
 }
 
-.brand p {
+.brand-text p {
   font-size: 1rem;
   font-weight: 800;
+  color: #fff;
   letter-spacing: 0.02em;
 }
 
-.brand span,
+.brand-text span,
 .side-note span,
-.menu small,
-.topbar-meta span {
-  color: #64748b;
+.menu-copy small {
+  color: #cbd5e1;
   font-size: 0.9rem;
+}
+
+.sidebar.is-collapsed .brand-text,
+.sidebar.is-collapsed .menu-copy,
+.sidebar.is-collapsed .menu-heading,
+.sidebar.is-collapsed .side-note {
+  display: none;
+}
+
+.sidebar-toggle {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #111827;
+  color: #fff;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
 }
 
 .menu {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
-.menu a {
-  display: grid;
-  gap: 4px;
-  text-decoration: none;
-  padding: 14px 16px;
-  border-radius: 16px;
-  border: 1px solid transparent;
-  color: #0f172a;
-  background: #f8fafc;
-}
-
-.menu a.active {
-  border-color: rgba(59, 130, 246, 0.18);
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(15, 23, 42, 0.03));
-}
-
-.menu span {
+.menu-heading {
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
   font-weight: 800;
+  margin-top: 6px;
+}
+
+.menu-item {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  text-decoration: none;
+  color: #e2e8f0;
+  padding: 12px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.menu-item:hover,
+.menu-item.active {
+  background: #1e293b;
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.menu-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: #0f172a;
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.menu-title {
+  display: block;
+  font-weight: 700;
+  color: #fff;
+}
+
+.menu-copy {
+  display: grid;
+  gap: 2px;
 }
 
 .side-note {
   margin-top: auto;
   padding: 16px;
   border-radius: 18px;
-  background: #f8fafc;
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: #111827;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.side-note p {
+  color: #fff;
+  font-weight: 700;
+  margin-bottom: 6px;
 }
 
 .workspace {
@@ -105,8 +177,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 18px;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
+  background: #fff;
   border-bottom: 1px solid rgba(148, 163, 184, 0.16);
 }
 
@@ -136,6 +207,8 @@
   border-radius: 999px;
   background: #f8fafc;
   border: 1px solid rgba(148, 163, 184, 0.18);
+  color: #475569;
+  font-size: 0.9rem;
 }
 
 .page-host {
@@ -149,8 +222,20 @@
   }
 
   .sidebar {
+    width: 100%;
     border-right: 0;
     border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  }
+
+  .sidebar.is-collapsed {
+    width: 100%;
+  }
+
+  .sidebar.is-collapsed .brand-text,
+  .sidebar.is-collapsed .menu-copy,
+  .sidebar.is-collapsed .menu-heading,
+  .sidebar.is-collapsed .side-note {
+    display: block;
   }
 
   .topbar {

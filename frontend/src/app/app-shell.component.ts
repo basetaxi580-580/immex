@@ -1,36 +1,102 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import {
+  faBars,
+  faBoxesStacked,
+  faChartLine,
+  faChevronLeft,
+  faClipboardList,
+  faClockRotateLeft,
+  faFileCircleCheck,
+  faFileInvoiceDollar,
+  faHouse,
+  faMagnifyingGlass,
+  faTruckRampBox,
+  faTriangleExclamation,
+  faUserShield,
+} from '@fortawesome/free-solid-svg-icons';
+
+type SidebarLink = {
+  label: string;
+  description: string;
+  route: string;
+  fragment?: string;
+  icon: typeof faHouse;
+  exact?: boolean;
+};
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, FontAwesomeModule],
   template: `
     <div class="app-shell">
-      <aside class="sidebar">
-        <div class="brand">
-          <div class="brand-mark">I</div>
-          <div>
-            <p>IMMEX</p>
-            <span>Panel operativo</span>
+      <aside class="sidebar" [class.is-collapsed]="!isSidebarOpen">
+        <div class="sidebar-top">
+          <div class="brand">
+            <div class="brand-mark">I</div>
+            <div class="brand-text">
+              <p>IMMEX</p>
+              <span>Panel operativo</span>
+            </div>
           </div>
+
+          <button
+            type="button"
+            class="sidebar-toggle"
+            (click)="toggleSidebar()"
+            [attr.aria-label]="isSidebarOpen ? 'Contraer menú' : 'Expandir menú'"
+            [attr.title]="isSidebarOpen ? 'Contraer menú' : 'Expandir menú'"
+          >
+            <fa-icon [icon]="isSidebarOpen ? faChevronLeft : faBars"></fa-icon>
+          </button>
         </div>
 
-        <nav class="menu">
-          <a routerLink="/dashboard" routerLinkActive="active">
-            <span>Dashboard</span>
-            <small>Resumen y control</small>
+        <nav class="menu" aria-label="Navegación principal">
+          <p class="menu-heading">Módulos</p>
+
+          <a
+            *ngFor="let item of primaryNav"
+            class="menu-item"
+            routerLinkActive="active"
+            [routerLink]="item.route"
+            [fragment]="item.fragment || undefined"
+            [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+            (click)="collapseOnMobile()"
+            [attr.title]="item.label"
+          >
+            <span class="menu-icon"><fa-icon [icon]="item.icon"></fa-icon></span>
+            <span class="menu-copy">
+              <span class="menu-title">{{ item.label }}</span>
+              <small>{{ item.description }}</small>
+            </span>
           </a>
-          <a routerLink="/inventory" routerLinkActive="active">
-            <span>Inventario / Pedimentos</span>
-            <small>Altas, filtros y edición</small>
+
+          <p class="menu-heading">Secciones del tablero</p>
+
+          <a
+            *ngFor="let item of sectionNav"
+            class="menu-item"
+            routerLinkActive="active"
+            [routerLink]="item.route"
+            [fragment]="item.fragment || undefined"
+            [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+            (click)="collapseOnMobile()"
+            [attr.title]="item.label"
+          >
+            <span class="menu-icon"><fa-icon [icon]="item.icon"></fa-icon></span>
+            <span class="menu-copy">
+              <span class="menu-title">{{ item.label }}</span>
+              <small>{{ item.description }}</small>
+            </span>
           </a>
         </nav>
 
         <div class="side-note">
           <p>Vista modular</p>
-          <span>El resto de módulos se agregan uno por uno.</span>
+          <span>Secciones organizadas para navegación rápida y limpia.</span>
         </div>
       </aside>
 
@@ -54,4 +120,103 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
   `,
   styleUrl: './app-shell.component.css',
 })
-export class AppShellComponent {}
+export class AppShellComponent {
+  protected readonly faBars = faBars;
+  protected readonly faChevronLeft = faChevronLeft;
+
+  protected isSidebarOpen = typeof window !== 'undefined' && window.innerWidth > 1100;
+
+  protected readonly primaryNav: SidebarLink[] = [
+    {
+      label: 'Panel general',
+      description: 'Resumen ejecutivo y métricas clave',
+      route: '/dashboard',
+      fragment: 'dashboard',
+      icon: faChartLine,
+      exact: true,
+    },
+    {
+      label: 'Inventario / Pedimentos',
+      description: 'Altas, filtros y edición',
+      route: '/inventory',
+      icon: faBoxesStacked,
+      exact: true,
+    },
+  ];
+
+  protected readonly sectionNav: SidebarLink[] = [
+    {
+      label: 'Captura de movimiento',
+      description: 'Alta y edición del registro',
+      route: '/dashboard',
+      fragment: 'form-card',
+      icon: faClipboardList,
+    },
+    {
+      label: 'Ledger IMMEX',
+      description: 'Tabla detallada de movimientos',
+      route: '/dashboard',
+      fragment: 'list-card',
+      icon: faFileInvoiceDollar,
+    },
+    {
+      label: 'Flujo general',
+      description: 'Entrada, consumo y exportación',
+      route: '/dashboard',
+      fragment: 'flow-section',
+      icon: faTruckRampBox,
+    },
+    {
+      label: 'Resumen de operación',
+      description: 'Conteos y saldos generales',
+      route: '/dashboard',
+      fragment: 'summary-section',
+      icon: faChartLine,
+    },
+    {
+      label: 'Excepciones y riesgo',
+      description: 'Alertas y materiales críticos',
+      route: '/dashboard',
+      fragment: 'risk-section',
+      icon: faTriangleExclamation,
+    },
+    {
+      label: 'PEPS',
+      description: 'Consumo simulado',
+      route: '/dashboard',
+      fragment: 'peps-section',
+      icon: faClockRotateLeft,
+    },
+    {
+      label: 'Cierre mensual',
+      description: 'Reporte listo para revisión',
+      route: '/dashboard',
+      fragment: 'close-section',
+      icon: faFileCircleCheck,
+    },
+    {
+      label: 'Trazabilidad',
+      description: 'Quién, cuándo y por qué',
+      route: '/dashboard',
+      fragment: 'audit-section',
+      icon: faUserShield,
+    },
+    {
+      label: 'Búsqueda rápida',
+      description: 'Filtrar y localizar registros',
+      route: '/inventory',
+      fragment: undefined,
+      icon: faMagnifyingGlass,
+    },
+  ];
+
+  protected toggleSidebar(): void {
+    this.isSidebarOpen = !this.isSidebarOpen;
+  }
+
+  protected collapseOnMobile(): void {
+    if (typeof window !== 'undefined' && window.innerWidth <= 980) {
+      this.isSidebarOpen = false;
+    }
+  }
+}
