@@ -22,11 +22,15 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
             <span>Dashboard</span>
             <small>Resumen y control</small>
           </a>
+          <a routerLink="/inventory" routerLinkActive="active">
+            <span>Inventario / Pedimentos</span>
+            <small>Altas, filtros y edición</small>
+          </a>
         </nav>
 
         <div class="side-note">
           <p>Vista modular</p>
-          <span>Solo el dashboard está activo por ahora.</span>
+          <span>El resto de módulos se agregan uno por uno.</span>
         </div>
       </aside>
 
