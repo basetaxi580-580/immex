@@ -11,11 +11,12 @@ import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResu
   template: `
     <main class="shell">
       <section class="hero">
-        <div>
-          <p class="eyebrow">IMMEX</p>
-          <h1>Control de inventario importado con reloj legal</h1>
+        <div class="hero-copy">
+          <p class="eyebrow">IMMEX · operación y trazabilidad</p>
+          <h1>Inventario, PEPS y cierre mensual en un solo tablero</h1>
           <p class="subtitle">
-            Un solo ledger para entradas, consumo y exportación; riesgo en pesos, alertas de vencimiento y trazabilidad completa.
+            Controla entradas, consumos y exportaciones con alertas de vencimiento, riesgo calculado y auditoría
+            lista para revisión.
           </p>
           <div class="alert-pills">
             <span class="pill danger">90d: {{ summary?.alert90Count ?? alert90Count }}</span>
@@ -25,9 +26,9 @@ import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResu
         </div>
         <div class="stats">
           <div><span>Registros</span><strong>{{ summary?.totalRecords ?? records.length }}</strong></div>
-          <div><span>Por vencer ≤30 días</span><strong>{{ expiringSoonCount }}</strong></div>
+          <div><span>Vencen pronto</span><strong>{{ expiringSoonCount }}</strong></div>
           <div><span>Riesgo total</span><strong>{{ (summary?.riskTotal ?? riskTotal) | currency:'MXN':'symbol':'1.0-0' }}</strong></div>
-          <div><span>Conexión</span><strong>{{ connected ? 'API OK' : 'Sin API' }}</strong></div>
+          <div><span>Estado</span><strong>{{ connected ? 'API OK' : 'Sin API' }}</strong></div>
         </div>
       </section>
 
@@ -35,7 +36,7 @@ import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResu
         <article class="card form-card">
           <div class="card-head">
             <h2>{{ editingId ? 'Editar movimiento' : 'Nuevo movimiento' }}</h2>
-            <span>{{ editingId ? 'Modo edición' : 'Alta rápida' }}</span>
+            <span>{{ editingId ? 'Actualización' : 'Alta rápida' }}</span>
           </div>
 
           <form class="form" (ngSubmit)="save()">
@@ -354,10 +355,6 @@ export class AppComponent implements OnInit {
       .filter((record, index, self) => self.findIndex((candidate) => candidate.id === record.id) === index)
       .filter((record) => this.daysLeft(record) <= 60)
       .sort((a, b) => this.daysLeft(a) - this.daysLeft(b));
-  }
-
-  get closeReportWarnings(): string[] {
-    return this.summary?.pepsCandidate ? [] : ['Sin candidato PEPS'];
   }
 
   load(): void {
