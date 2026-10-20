@@ -5,7 +5,7 @@ import { ImmexService } from './immex.service';
 import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult } from './models';
 
 @Component({
-  selector: 'app-root',
+  selector: 'app-dashboard-page',
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
