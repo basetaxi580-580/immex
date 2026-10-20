@@ -10,13 +10,13 @@ import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResu
   imports: [CommonModule, FormsModule],
   template: `
     <main class="shell">
-      <section class="hero">
+      <section class="hero executive-hero">
         <div class="hero-copy">
-          <p class="eyebrow">IMMEX · operación y trazabilidad</p>
-          <h1>Inventario, PEPS y cierre mensual en un solo tablero</h1>
+          <p class="eyebrow">IMMEX · panel ejecutivo</p>
+          <h1>Control operativo y trazabilidad en una sola vista</h1>
           <p class="subtitle">
-            Controla entradas, consumos y exportaciones con alertas de vencimiento, riesgo calculado y auditoría
-            lista para revisión.
+            Monitorea entradas, consumos, exportaciones y cierre mensual desde una interfaz sobria, profesional y de
+            colores sólidos.
           </p>
           <div class="alert-pills">
             <span class="pill danger">90d: {{ summary?.alert90Count ?? alert90Count }}</span>
@@ -24,7 +24,7 @@ import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResu
             <span class="pill warn-strong">30d: {{ summary?.alert30Count ?? alert30Count }}</span>
           </div>
         </div>
-        <div class="stats">
+        <div class="stats executive-stats">
           <div><span>Registros</span><strong>{{ summary?.totalRecords ?? records.length }}</strong></div>
           <div><span>Vencen pronto</span><strong>{{ expiringSoonCount }}</strong></div>
           <div><span>Riesgo total</span><strong>{{ (summary?.riskTotal ?? riskTotal) | currency:'MXN':'symbol':'1.0-0' }}</strong></div>
