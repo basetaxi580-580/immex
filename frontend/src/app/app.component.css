@@ -9,33 +9,44 @@
 
 .shell {
   min-height: 100vh;
-  padding: 28px;
+  padding: 32px;
+  background: #eef2f7;
 }
 
 .hero,
 .card {
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 8px 26px rgba(15, 23, 42, 0.08);
 }
 
 .hero {
   display: grid;
-  grid-template-columns: 1.35fr 0.65fr;
-  gap: 18px;
-  padding: 24px;
+  grid-template-columns: 1.3fr 0.7fr;
+  gap: 20px;
+  padding: 26px;
   align-items: center;
   margin-bottom: 20px;
+  background: linear-gradient(180deg, #1e3a8a 0%, #1d4ed8 100%);
+  color: #fff;
+}
+
+.hero .eyebrow,
+.hero h1,
+.hero .subtitle,
+.hero .stats span,
+.hero .stats strong {
+  color: #fff;
 }
 
 .eyebrow {
   margin: 0 0 8px;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: #c02686;
+  letter-spacing: 0.08em;
+  color: #1d4ed8;
   font-weight: 800;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
 }
 
 h1,
@@ -45,16 +56,16 @@ p {
 }
 
 h1 {
-  color: #111827;
-  font-size: clamp(2rem, 3.8vw, 3.3rem);
-  line-height: 1.05;
+  color: #0f172a;
+  font-size: clamp(2rem, 3.4vw, 3.05rem);
+  line-height: 1.08;
 }
 
 .subtitle {
   margin-top: 10px;
-  color: #6b7280;
+  color: #334155;
   line-height: 1.6;
-  max-width: 62ch;
+  max-width: 68ch;
 }
 
 .alert-pills {
@@ -78,21 +89,21 @@ h1 {
 }
 
 .pill.danger {
-  background: #ffe4ec;
-  color: #9f1239;
-  border-color: #f9a8d4;
+  background: #dc2626;
+  color: #fff;
+  border-color: #b91c1c;
 }
 
 .pill.warn {
-  background: #fff7cc;
-  color: #92400e;
-  border-color: #fcd34d;
+  background: #d97706;
+  color: #fff;
+  border-color: #b45309;
 }
 
 .pill.warn-strong {
-  background: #fee2e2;
-  color: #991b1b;
-  border-color: #fca5a5;
+  background: #7c3aed;
+  color: #fff;
+  border-color: #6d28d9;
 }
 
 .stats {
@@ -107,8 +118,8 @@ h1 {
 .audit-item,
 .close-report-box {
   border-radius: 16px;
-  background: rgba(255, 247, 251, 0.92);
-  border: 1px solid rgba(236, 72, 153, 0.12);
+  background: #f8fafc;
+  border: 1px solid rgba(15, 23, 42, 0.08);
 }
 
 .stats div {
@@ -122,13 +133,13 @@ h1 {
 .empty,
 .muted,
 .close-report-box p {
-  color: #7c3aed;
+  color: #475569;
   font-size: 0.92rem;
 }
 
 .stats strong {
   font-size: 1.5rem;
-  color: #111827;
+  color: #0f172a;
 }
 
 .grid,
@@ -164,7 +175,7 @@ h1 {
 }
 
 .card-head h2 {
-  color: #111827;
+  color: #0f172a;
   font-size: 1.2rem;
 }
 
