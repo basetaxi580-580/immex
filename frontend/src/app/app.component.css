@@ -28,7 +28,7 @@
   padding: 26px;
   align-items: center;
   margin-bottom: 20px;
-  background: linear-gradient(180deg, #1e3a8a 0%, #1d4ed8 100%);
+  background: #0f766e;
   color: #fff;
 }
 
@@ -39,6 +39,7 @@
 .hero .stats strong {
   color: #fff;
 }
+
 
 .eyebrow {
   margin: 0 0 8px;
@@ -250,7 +251,7 @@ button {
 
 button.primary {
   color: #fff;
-  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  background: #0f766e;
 }
 
 button.ghost,
