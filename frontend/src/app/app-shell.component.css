@@ -121,6 +121,7 @@
   border-radius: 16px;
   padding: 12px;
   min-height: 58px;
+  cursor: pointer;
 }
 
 .menu-group-toggle.active {
@@ -216,6 +217,12 @@
 .sidebar.is-collapsed .menu-caret,
 .sidebar.is-collapsed .side-note {
   display: none;
+}
+
+.sidebar.is-collapsed .menu-group-toggle {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  padding: 10px 8px;
 }
 
 .sidebar.is-collapsed .menu-group-toggle {
