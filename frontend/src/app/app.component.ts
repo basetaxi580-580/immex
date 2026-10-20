@@ -10,25 +10,28 @@ import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResu
   imports: [CommonModule, FormsModule],
   template: `
     <main class="shell">
-      <section class="hero">
+      <section class="hero document-header">
         <div class="hero-copy">
-          <p class="eyebrow">IMMEX · operación y trazabilidad</p>
-          <h1>Inventario, PEPS y cierre mensual en un solo tablero</h1>
+          <p class="eyebrow">IMMEX</p>
+          <h1>Programa IMMEX</h1>
+          <hr class="divider" />
           <p class="subtitle">
-            Controla entradas, consumos y exportaciones con alertas de vencimiento, riesgo calculado y auditoría
-            lista para revisión.
+            Aquí encontrarás diversa información que deberás considerar para poder llevar a cabo tus operaciones bajo
+            el Programa de la Industria Manufacturera, Maquiladora y de Servicios de Exportación (IMMEX).
           </p>
-          <div class="alert-pills">
-            <span class="pill danger">90d: {{ summary?.alert90Count ?? alert90Count }}</span>
-            <span class="pill warn">60d: {{ summary?.alert60Count ?? alert60Count }}</span>
-            <span class="pill warn-strong">30d: {{ summary?.alert30Count ?? alert30Count }}</span>
-          </div>
-        </div>
-        <div class="stats">
-          <div><span>Registros</span><strong>{{ summary?.totalRecords ?? records.length }}</strong></div>
-          <div><span>Vencen pronto</span><strong>{{ expiringSoonCount }}</strong></div>
-          <div><span>Riesgo total</span><strong>{{ (summary?.riskTotal ?? riskTotal) | currency:'MXN':'symbol':'1.0-0' }}</strong></div>
-          <div><span>Estado</span><strong>{{ connected ? 'API OK' : 'Sin API' }}</strong></div>
+          <p class="note-link">
+            <a href="https://www.snice.gob.mx/~oracle/SNICE_DOCS/RAOCE-2026-PROGRAMAS-DE-FOMENTO_20260423-20260423.pdf" target="_blank" rel="noopener">
+              Consulta aquí la guía de VUCEM para el reporte anual de operaciones de Comercio Exterior.
+            </a>
+          </p>
+          <p class="note-link">
+            <a href="https://www.snice.gob.mx/cs/avi/snice/aviso.disponibilidad.html" target="_blank" rel="noopener">
+              Aquí podrás consultar el Aviso de disponibilidad de notificación.
+            </a>
+          </p>
+          <p class="contact-line">
+            ¿Tienes alguna duda? Envíanos un correo a: <strong>atencion.immex@economia.gob.mx</strong>
+          </p>
         </div>
       </section>
 
