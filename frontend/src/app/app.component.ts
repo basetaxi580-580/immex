@@ -10,7 +10,7 @@ import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResu
   imports: [CommonModule, FormsModule],
   template: `
     <main class="shell">
-      <section class="hero executive-hero">
+      <section class="hero executive-hero" id="dashboard">
         <div class="hero-copy">
           <p class="eyebrow">IMMEX · panel ejecutivo</p>
           <h1>Control operativo y trazabilidad en una sola vista</h1>

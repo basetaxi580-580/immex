@@ -99,6 +99,8 @@
 .menu {
   display: grid;
   gap: 10px;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .menu-heading {
@@ -107,7 +109,7 @@
   letter-spacing: 0.12em;
   font-size: 0.72rem;
   font-weight: 800;
-  margin-top: 6px;
+  margin: 6px 0 4px;
 }
 
 .menu-item {
@@ -117,10 +119,11 @@
   align-items: center;
   text-decoration: none;
   color: #e2e8f0;
-  padding: 12px 12px;
+  padding: 12px;
   border-radius: 16px;
   border: 1px solid rgba(148, 163, 184, 0.12);
   background: rgba(15, 23, 42, 0.9);
+  min-height: 58px;
 }
 
 .menu-item:hover,
@@ -138,6 +141,7 @@
   background: #0f172a;
   color: #93c5fd;
   border: 1px solid rgba(59, 130, 246, 0.25);
+  flex: 0 0 auto;
 }
 
 .menu-title {
@@ -149,20 +153,46 @@
 .menu-copy {
   display: grid;
   gap: 2px;
+  min-width: 0;
 }
 
-.side-note {
-  margin-top: auto;
-  padding: 16px;
-  border-radius: 18px;
-  background: #111827;
-  border: 1px solid rgba(148, 163, 184, 0.12);
+.sidebar.is-collapsed .menu {
+  justify-items: center;
 }
 
-.side-note p {
-  color: #fff;
-  font-weight: 700;
-  margin-bottom: 6px;
+.sidebar.is-collapsed .menu-item {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  width: 56px;
+  min-height: 56px;
+  padding: 10px 8px;
+}
+
+.sidebar.is-collapsed .menu-icon {
+  margin: 0;
+}
+
+.sidebar.is-collapsed .menu {
+  justify-items: center;
+  gap: 8px;
+}
+
+.sidebar.is-collapsed .menu-item {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  width: 56px;
+  min-height: 56px;
+  padding: 10px 8px;
+}
+
+.sidebar.is-collapsed .menu-icon {
+  margin: 0;
+}
+
+.sidebar.is-collapsed .brand-text,
+.sidebar.is-collapsed .menu-copy,
+.sidebar.is-collapsed .side-note {
+  display: none;
 }
 
 .workspace {

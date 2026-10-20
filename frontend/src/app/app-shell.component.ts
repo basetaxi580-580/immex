@@ -7,8 +7,8 @@ import {
   faBoxesStacked,
   faChartLine,
   faChevronLeft,
-  faClipboardList,
   faClockRotateLeft,
+  faClipboardList,
   faFileCircleCheck,
   faFileInvoiceDollar,
   faHouse,
@@ -55,29 +55,10 @@ type SidebarLink = {
         </div>
 
         <nav class="menu" aria-label="Navegación principal">
-          <p class="menu-heading">Módulos</p>
+          <p class="menu-heading">Secciones</p>
 
           <a
-            *ngFor="let item of primaryNav"
-            class="menu-item"
-            routerLinkActive="active"
-            [routerLink]="item.route"
-            [fragment]="item.fragment || undefined"
-            [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
-            (click)="collapseOnMobile()"
-            [attr.title]="item.label"
-          >
-            <span class="menu-icon"><fa-icon [icon]="item.icon"></fa-icon></span>
-            <span class="menu-copy">
-              <span class="menu-title">{{ item.label }}</span>
-              <small>{{ item.description }}</small>
-            </span>
-          </a>
-
-          <p class="menu-heading">Secciones del tablero</p>
-
-          <a
-            *ngFor="let item of sectionNav"
+            *ngFor="let item of navItems"
             class="menu-item"
             routerLinkActive="active"
             [routerLink]="item.route"
@@ -126,7 +107,7 @@ export class AppShellComponent {
 
   protected isSidebarOpen = typeof window !== 'undefined' && window.innerWidth > 1100;
 
-  protected readonly primaryNav: SidebarLink[] = [
+  protected readonly navItems: SidebarLink[] = [
     {
       label: 'Panel general',
       description: 'Resumen ejecutivo y métricas clave',
@@ -142,9 +123,6 @@ export class AppShellComponent {
       icon: faBoxesStacked,
       exact: true,
     },
-  ];
-
-  protected readonly sectionNav: SidebarLink[] = [
     {
       label: 'Captura de movimiento',
       description: 'Alta y edición del registro',
@@ -205,8 +183,8 @@ export class AppShellComponent {
       label: 'Búsqueda rápida',
       description: 'Filtrar y localizar registros',
       route: '/inventory',
-      fragment: undefined,
       icon: faMagnifyingGlass,
+      exact: true,
     },
   ];
 
