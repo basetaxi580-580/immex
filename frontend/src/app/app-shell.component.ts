@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {
   faBars,
@@ -22,13 +22,13 @@ type SidebarLink = {
   label: string;
   description: string;
   route: string;
-  fragment?: string;
   icon: typeof faHouse;
   exact?: boolean;
 };
 
 type SidebarGroup = {
   heading: string;
+  icon: typeof faHouse;
   items: SidebarLink[];
 };
 
@@ -61,24 +61,38 @@ type SidebarGroup = {
 
         <nav class="menu" aria-label="Navegación principal">
           <section class="menu-group" *ngFor="let group of navGroups">
-            <p class="menu-heading">{{ group.heading }}</p>
-
-            <a
-              *ngFor="let item of group.items"
-              class="menu-item"
-              routerLinkActive="active"
-              [routerLink]="item.route"
-              [fragment]="item.fragment || undefined"
-              [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
-              (click)="collapseOnMobile()"
-              [attr.title]="item.label"
+            <button
+              type="button"
+              class="menu-group-toggle"
+              [class.active]="isGroupActive(group)"
+              (click)="toggleGroup(group.heading)"
+              [attr.aria-expanded]="isGroupExpanded(group.heading)"
+              [attr.title]="group.heading"
             >
-              <span class="menu-icon"><fa-icon [icon]="item.icon"></fa-icon></span>
-              <span class="menu-copy">
-                <span class="menu-title">{{ item.label }}</span>
-                <small>{{ item.description }}</small>
+              <span class="menu-icon"><fa-icon [icon]="group.icon"></fa-icon></span>
+              <span class="menu-copy menu-group-copy">
+                <span class="menu-title">{{ group.heading }}</span>
               </span>
-            </a>
+              <span class="menu-caret" aria-hidden="true">›</span>
+            </button>
+
+            <div class="menu-subitems" *ngIf="isSidebarOpen && isGroupExpanded(group.heading)">
+              <a
+                *ngFor="let item of group.items"
+                class="menu-item"
+                routerLinkActive="active"
+                [routerLink]="item.route"
+                [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+                (click)="collapseOnMobile()"
+                [attr.title]="item.label"
+              >
+                <span class="menu-icon"><fa-icon [icon]="item.icon"></fa-icon></span>
+                <span class="menu-copy">
+                  <span class="menu-title">{{ item.label }}</span>
+                  <small>{{ item.description }}</small>
+                </span>
+              </a>
+            </div>
           </section>
         </nav>
 
@@ -113,103 +127,117 @@ export class AppShellComponent {
   protected readonly faChevronLeft = faChevronLeft;
 
   protected isSidebarOpen = typeof window !== 'undefined' && window.innerWidth > 1100;
+  protected readonly expandedGroups = new Set<string>([
+    'Panel general',
+    'Inventario y movimientos',
+    'Control y seguimiento',
+    'Reportes y auditoría',
+    'Búsqueda',
+  ]);
 
   protected readonly navGroups: SidebarGroup[] = [
     {
-      heading: 'Visión general',
+      heading: 'Panel general',
+      icon: faChartLine,
       items: [
         {
           label: 'Panel general',
           description: 'Resumen ejecutivo y métricas clave',
           route: '/dashboard',
-          fragment: 'dashboard',
           icon: faChartLine,
           exact: true,
         },
+      ],
+    },
+    {
+      heading: 'Inventario y movimientos',
+      icon: faBoxesStacked,
+      items: [
         {
           label: 'Inventario / Pedimentos',
           description: 'Altas, filtros y edición',
           route: '/inventory',
-          fragment: 'inventory-hero',
           icon: faBoxesStacked,
+          exact: true,
+        },
+        {
+          label: 'Captura de movimiento',
+          description: 'Alta y edición del registro',
+          route: '/dashboard/movement',
+          icon: faClipboardList,
+          exact: true,
+        },
+        {
+          label: 'Ledger IMMEX',
+          description: 'Tabla detallada de movimientos',
+          route: '/dashboard/ledger',
+          icon: faFileInvoiceDollar,
+          exact: true,
+        },
+        {
+          label: 'Flujo general',
+          description: 'Entrada, consumo y exportación',
+          route: '/dashboard/flow',
+          icon: faTruckRampBox,
           exact: true,
         },
       ],
     },
     {
-      heading: 'Operación',
-      items: [
-        {
-          label: 'Captura de movimiento',
-          description: 'Alta y edición del registro',
-          route: '/dashboard',
-          fragment: 'form-card',
-          icon: faClipboardList,
-        },
-        {
-          label: 'Ledger IMMEX',
-          description: 'Tabla detallada de movimientos',
-          route: '/dashboard',
-          fragment: 'list-card',
-          icon: faFileInvoiceDollar,
-        },
-        {
-          label: 'Flujo general',
-          description: 'Entrada, consumo y exportación',
-          route: '/dashboard',
-          fragment: 'flow-section',
-          icon: faTruckRampBox,
-        },
-      ],
-    },
-    {
-      heading: 'Análisis y control',
+      heading: 'Control y seguimiento',
+      icon: faChartLine,
       items: [
         {
           label: 'Resumen de operación',
           description: 'Conteos y saldos generales',
-          route: '/dashboard',
-          fragment: 'summary-section',
+          route: '/dashboard/summary',
           icon: faChartLine,
+          exact: true,
         },
         {
           label: 'Excepciones y riesgo',
           description: 'Alertas y materiales críticos',
-          route: '/dashboard',
-          fragment: 'risk-section',
+          route: '/dashboard/risk',
           icon: faTriangleExclamation,
+          exact: true,
         },
         {
           label: 'PEPS',
           description: 'Consumo simulado',
-          route: '/dashboard',
-          fragment: 'peps-section',
+          route: '/dashboard/peps',
           icon: faClockRotateLeft,
+          exact: true,
         },
+      ],
+    },
+    {
+      heading: 'Reportes y auditoría',
+      icon: faFileCircleCheck,
+      items: [
         {
           label: 'Cierre mensual',
           description: 'Reporte listo para revisión',
-          route: '/dashboard',
-          fragment: 'close-section',
+          route: '/dashboard/close',
           icon: faFileCircleCheck,
+          exact: true,
         },
         {
           label: 'Trazabilidad',
           description: 'Quién, cuándo y por qué',
-          route: '/dashboard',
-          fragment: 'audit-section',
+          route: '/dashboard/audit',
           icon: faUserShield,
+          exact: true,
         },
       ],
     },
     {
       heading: 'Búsqueda',
+      icon: faMagnifyingGlass,
       items: [
         {
-          label: 'Buscar registros',
+          label: 'Búsqueda rápida',
           description: 'Filtrar y localizar información',
           route: '/inventory',
-          fragment: 'inventory-table',
           icon: faMagnifyingGlass,
           exact: true,
         },
@@ -217,8 +245,31 @@ export class AppShellComponent {
     },
   ];
 
+  constructor(private readonly router: Router) {}
+
   protected toggleSidebar(): void {
     this.isSidebarOpen = !this.isSidebarOpen;
+  }
+
+  protected toggleGroup(groupHeading: string): void {
+    if (!this.isSidebarOpen) {
+      this.isSidebarOpen = true;
+    }
+
+    if (this.expandedGroups.has(groupHeading)) {
+      this.expandedGroups.delete(groupHeading);
+      return;
+    }
+
+    this.expandedGroups.add(groupHeading);
+  }
+
+  protected isGroupExpanded(groupHeading: string): boolean {
+    return this.expandedGroups.has(groupHeading);
+  }
+
+  protected isGroupActive(group: SidebarGroup): boolean {
+    return group.items.some((item) => this.router.url === item.route || this.router.url.startsWith(`${item.route}/`));
   }
 
   protected collapseOnMobile(): void {

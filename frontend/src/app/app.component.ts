@@ -1,8 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter, Subscription } from 'rxjs';
 import { ImmexService } from './immex.service';
 import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult } from './models';
+
+type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 'risk' | 'peps' | 'close' | 'audit';
 
 @Component({
   selector: 'app-dashboard-page',
@@ -10,33 +14,48 @@ import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResu
   imports: [CommonModule, FormsModule],
   template: `
     <main class="shell">
-      <section class="hero executive-hero" id="dashboard">
-        <div class="hero-copy">
-          <p class="eyebrow">IMMEX · panel ejecutivo</p>
-          <h1>Control operativo y trazabilidad en una sola vista</h1>
-          <p class="subtitle">
-            Monitorea entradas, consumos, exportaciones y cierre mensual desde una interfaz sobria, profesional y de
-            colores sólidos.
-          </p>
-          <div class="alert-pills">
-            <span class="pill danger">90d: {{ summary?.alert90Count ?? alert90Count }}</span>
-            <span class="pill warn">60d: {{ summary?.alert60Count ?? alert60Count }}</span>
-            <span class="pill warn-strong">30d: {{ summary?.alert30Count ?? alert30Count }}</span>
-          </div>
-        </div>
-        <div class="stats executive-stats">
-          <div><span>Registros</span><strong>{{ summary?.totalRecords ?? records.length }}</strong></div>
-          <div><span>Vencen pronto</span><strong>{{ expiringSoonCount }}</strong></div>
-          <div><span>Riesgo total</span><strong>{{ (summary?.riskTotal ?? riskTotal) | currency:'MXN':'symbol':'1.0-0' }}</strong></div>
-          <div><span>Estado</span><strong>{{ connected ? 'API OK' : 'Sin API' }}</strong></div>
-        </div>
-      </section>
+      <ng-container [ngSwitch]="activeView">
+        <section *ngSwitchCase="'dashboard'" class="dashboard-panel">
+          <header class="card hero-summary" id="dashboard">
+            <div>
+              <p class="eyebrow">Panel general</p>
+              <h1>Panel general</h1>
+              <p class="subtitle">Resumen operativo del sistema IMMEX con indicadores activos y acceso rápido a las secciones.</p>
+            </div>
+            <div class="summary-inline">
+              <div><span>Registros</span><strong>{{ summary?.totalRecords ?? records.length }}</strong></div>
+              <div><span>Vencen pronto</span><strong>{{ expiringSoonCount }}</strong></div>
+              <div><span>Riesgo total</span><strong>{{ (summary?.riskTotal ?? riskTotal) | currency:'MXN':'symbol':'1.0-0' }}</strong></div>
+              <div><span>Estado de API</span><strong>{{ connected ? 'API OK' : 'Sin API' }}</strong></div>
+              <div><span>90 días</span><strong>{{ alert90Count }}</strong></div>
+              <div><span>60 días</span><strong>{{ alert60Count }}</strong></div>
+              <div><span>30 días</span><strong>{{ alert30Count }}</strong></div>
+              <div><span>Entradas</span><strong>{{ entryCount }}</strong></div>
+              <div><span>Consumos</span><strong>{{ consumptionCount }}</strong></div>
+              <div><span>Exportaciones</span><strong>{{ exportCount }}</strong></div>
+              <div><span>Listos para cierre</span><strong>{{ closeReadyCount }}</strong></div>
+            </div>
+          </header>
 
-      <section class="grid" id="form-card">
-        <article class="card form-card">
+          <section class="card risk-card" id="risk-section">
+            <div class="card-head">
+              <h2>Excepciones y riesgo</h2>
+              <span>{{ expiringSoonCount }} urgentes</span>
+            </div>
+            <div class="exception-list">
+              <div class="exception-item" *ngFor="let record of riskAlerts">
+                <strong>{{ record.material }}</strong>
+                <span>{{ record.pedimento }} · {{ daysLeft(record) }} días · {{ riskFor(record) | currency:'MXN':'symbol':'1.0-0' }}</span>
+              </div>
+              <div class="empty" *ngIf="!riskAlerts.length">Sin excepciones por ahora.</div>
+            </div>
+          </section>
+        </section>
+
+        <section *ngSwitchCase="'movement'" class="card form-card" id="form-card">
           <div class="card-head">
-            <h2>{{ editingId ? 'Editar movimiento' : 'Nuevo movimiento' }}</h2>
-            <span>{{ editingId ? 'Actualización' : 'Alta rápida' }}</span>
+            <h2>Captura de movimiento</h2>
+            <span>Alta y edición del registro</span>
           </div>
 
           <form class="form" (ngSubmit)="save()">
@@ -102,7 +121,6 @@ import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResu
               <span>Notas</span>
               <textarea [(ngModel)]="form.notas" name="notas" rows="3" placeholder="Observaciones de conciliación"></textarea>
             </label>
-
             <div class="actions">
               <button class="primary" type="submit">{{ editingId ? 'Actualizar' : 'Guardar' }}</button>
               <button class="ghost" type="button" (click)="resetForm()">Limpiar</button>
@@ -110,9 +128,9 @@ import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResu
           </form>
 
           <p class="error" *ngIf="error">{{ error }}</p>
-        </article>
+        </section>
 
-        <article class="card list-card">
+        <section *ngSwitchCase="'ledger'" class="card list-card" id="list-card">
           <div class="card-head">
             <h2>Ledger IMMEX</h2>
             <span>{{ records.length }} movimientos</span>
@@ -164,11 +182,9 @@ import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResu
               </tbody>
             </table>
           </div>
-        </article>
-      </section>
+        </section>
 
-      <section class="module-grid" id="flow-section">
-        <article class="card module-card">
+        <section *ngSwitchCase="'flow'" class="card module-card" id="flow-section">
           <div class="card-head">
             <h2>Flujo general</h2>
             <span>Entrada → consumo → exportación</span>
@@ -179,9 +195,9 @@ import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResu
             <li><strong>Exportación:</strong> descarga el saldo comprometido.</li>
             <li><strong>Cierre:</strong> se consolida el reporte Anexo 24.</li>
           </ol>
-        </article>
+        </section>
 
-        <article class="card module-card">
+        <section *ngSwitchCase="'summary'" class="card module-card" id="summary-section">
           <div class="card-head">
             <h2>Resumen de operación</h2>
             <span>Último corte</span>
@@ -192,9 +208,9 @@ import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResu
             <div><span>Exportaciones</span><strong>{{ exportCount }}</strong></div>
             <div><span>Listos para cierre</span><strong>{{ closeReadyCount }}</strong></div>
           </div>
-        </article>
+        </section>
 
-        <article class="card module-card wide-card">
+        <section *ngSwitchCase="'risk'" class="card module-card wide-card" id="risk-section">
           <div class="card-head">
             <h2>Excepciones y riesgo</h2>
             <span>{{ expiringSoonCount }} urgentes</span>
@@ -206,11 +222,9 @@ import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResu
             </div>
             <div class="empty" *ngIf="!riskAlerts.length">Sin excepciones por ahora.</div>
           </div>
-        </article>
-      </section>
+        </section>
 
-      <section class="module-grid lower-grid" id="peps-section">
-        <article class="card module-card">
+        <section *ngSwitchCase="'peps'" class="card module-card" id="peps-section">
           <div class="card-head">
             <h2>PEPS</h2>
             <span>Consumo simulado</span>
@@ -237,9 +251,9 @@ import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResu
             <button class="primary" type="submit">Aplicar PEPS</button>
           </form>
           <p class="success" *ngIf="pepsResult">{{ pepsResult.message }}</p>
-        </article>
+        </section>
 
-        <article class="card module-card">
+        <section *ngSwitchCase="'close'" class="card module-card" id="close-section">
           <div class="card-head">
             <h2>Cierre mensual</h2>
             <span>Reporte listo</span>
@@ -258,33 +272,36 @@ import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResu
             <p class="muted">Sin reporte aún.</p>
           </ng-template>
           <button class="ghost" type="button" (click)="refreshCloseReport()">Actualizar cierre</button>
-        </article>
-      </section>
+        </section>
 
-      <section class="card audit-card" id="audit-section">
-        <div class="card-head">
-          <h2>Trazabilidad</h2>
-          <span>quién, cuándo y por qué</span>
-        </div>
-        <div class="audit-list" *ngIf="auditEvents.length; else auditEmpty">
-          <div class="audit-item" *ngFor="let event of auditEvents">
-            <strong>{{ event.action }} · {{ event.entityType }}</strong>
-            <span>{{ event.actor }} · {{ event.reason || 'Sin motivo' }} · {{ event.createdAt | date:'short' }}</span>
-            <p>{{ event.details }}</p>
+        <section *ngSwitchCase="'audit'" class="card audit-card" id="audit-section">
+          <div class="card-head">
+            <h2>Trazabilidad</h2>
+            <span>quién, cuándo y por qué</span>
           </div>
-        </div>
-        <ng-template #auditEmpty>
-          <p class="muted">Sin eventos de auditoría todavía.</p>
-        </ng-template>
-        <button class="ghost" type="button" (click)="refreshAudit()">Actualizar trazabilidad</button>
-      </section>
+          <div class="audit-list" *ngIf="auditEvents.length; else auditEmpty">
+            <div class="audit-item" *ngFor="let event of auditEvents">
+              <strong>{{ event.action }} · {{ event.entityType }}</strong>
+              <span>{{ event.actor }} · {{ event.reason || 'Sin motivo' }} · {{ event.createdAt | date:'short' }}</span>
+              <p>{{ event.details }}</p>
+            </div>
+          </div>
+          <ng-template #auditEmpty>
+            <p class="muted">Sin eventos de auditoría todavía.</p>
+          </ng-template>
+          <button class="ghost" type="button" (click)="refreshAudit()">Actualizar trazabilidad</button>
+        </section>
+      </ng-container>
     </main>
   `,
   styleUrl: './app.component.css',
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
   private readonly service = inject(ImmexService);
+  private readonly router = inject(Router);
+  private routerSubscription?: Subscription;
 
+  activeView: DashboardView = 'dashboard';
   records: ImmexRecord[] = [];
   summary: ImmexDashboardSummary | null = null;
   closeReport: ImmexCloseReport | null = null;
@@ -302,9 +319,17 @@ export class AppComponent implements OnInit {
   };
 
   ngOnInit(): void {
+    this.syncView();
+    this.routerSubscription = this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe(() => this.syncView());
     this.load();
     this.refreshCloseReport();
     this.refreshAudit();
+  }
+
+  ngOnDestroy(): void {
+    this.routerSubscription?.unsubscribe();
   }
 
   get riskTotal(): number {
@@ -439,6 +464,8 @@ export class AppComponent implements OnInit {
       notas: record.notas ?? '',
       auditor: record.auditor ?? '',
     };
+    this.activeView = 'movement';
+    void this.router.navigateByUrl('/dashboard/movement');
   }
 
   remove(record: ImmexRecord): void {
@@ -470,6 +497,23 @@ export class AppComponent implements OnInit {
 
   formatDate(value: string): string {
     return new Intl.DateTimeFormat('es-MX').format(new Date(value + 'T00:00:00'));
+  }
+
+  private syncView(): void {
+    const path = this.router.url.split('?')[0].split('#')[0].replace(/^\//, '') || 'dashboard';
+    const routeMap: Record<string, DashboardView> = {
+      dashboard: 'dashboard',
+      'dashboard/movement': 'movement',
+      'dashboard/ledger': 'ledger',
+      'dashboard/flow': 'flow',
+      'dashboard/summary': 'summary',
+      'dashboard/risk': 'risk',
+      'dashboard/peps': 'peps',
+      'dashboard/close': 'close',
+      'dashboard/audit': 'audit',
+      inventory: 'dashboard',
+    };
+    this.activeView = routeMap[path] ?? 'dashboard';
   }
 
   private emptyForm(): ImmexRecord {

@@ -10,7 +10,7 @@ import { ImmexRecord } from './models';
   imports: [CommonModule, FormsModule],
   template: `
     <main class="module-shell">
-      <section class="module-hero card">
+      <section class="module-hero card" id="inventory-hero">
         <div>
           <p class="eyebrow">Módulo · Inventario / Pedimentos</p>
           <h1>Registro de materiales y control documental</h1>

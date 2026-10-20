@@ -98,7 +98,7 @@
 
 .menu {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   overflow-y: auto;
   padding-right: 2px;
 }
@@ -106,6 +106,32 @@
 .menu-group {
   display: grid;
   gap: 8px;
+}
+
+.menu-group-toggle {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+  color: #e2e8f0;
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+  padding: 12px;
+  min-height: 58px;
+}
+
+.menu-group-toggle.active {
+  background: #1e293b;
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.menu-subitems {
+  display: grid;
+  gap: 8px;
+  padding-left: 8px;
 }
 
 .menu-heading {
@@ -127,13 +153,13 @@
   padding: 12px;
   border-radius: 16px;
   border: 1px solid rgba(148, 163, 184, 0.12);
-  background: rgba(15, 23, 42, 0.9);
-  min-height: 58px;
+  background: rgba(30, 41, 59, 0.92);
+  min-height: 54px;
 }
 
 .menu-item:hover,
 .menu-item.active {
-  background: #1e293b;
+  background: #25324a;
   border-color: rgba(59, 130, 246, 0.35);
 }
 
@@ -161,6 +187,22 @@
   min-width: 0;
 }
 
+.menu-group-copy .menu-title {
+  letter-spacing: 0.01em;
+}
+
+.menu-caret {
+  color: #93c5fd;
+  font-size: 1.25rem;
+  line-height: 1;
+  transform: rotate(90deg);
+  transition: transform 0.2s ease;
+}
+
+.menu-group-toggle[aria-expanded='false'] .menu-caret {
+  transform: rotate(0deg);
+}
+
 .sidebar.is-collapsed .menu {
   justify-items: center;
 }
@@ -169,8 +211,19 @@
   justify-items: center;
 }
 
-.sidebar.is-collapsed .menu-heading {
+.sidebar.is-collapsed .menu-subitems,
+.sidebar.is-collapsed .menu-copy,
+.sidebar.is-collapsed .menu-caret,
+.sidebar.is-collapsed .side-note {
   display: none;
+}
+
+.sidebar.is-collapsed .menu-group-toggle {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  width: 56px;
+  min-height: 56px;
+  padding: 10px 8px;
 }
 
 .sidebar.is-collapsed .menu-item {
@@ -185,9 +238,7 @@
   margin: 0;
 }
 
-.sidebar.is-collapsed .brand-text,
-.sidebar.is-collapsed .menu-copy,
-.sidebar.is-collapsed .side-note {
+.sidebar.is-collapsed .brand-text {
   display: none;
 }
 
