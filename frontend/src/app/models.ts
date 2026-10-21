@@ -66,6 +66,22 @@ export interface CollectionSnapshot {
   sample: string[];
 }
 
+export interface DashboardMaterialRow {
+  material: string;
+  saldo: number;
+  fechaVencimiento: string | null;
+  montoEnRiesgo: number;
+  diasRestantes: number;
+  estado: string;
+}
+
+export interface DashboardInventorySummary {
+  saldoTotalMxn: number;
+  montoVencidoMxn: number;
+  montoPorVencerMxn: number;
+  materiales: DashboardMaterialRow[];
+}
+
 export interface ProduccionMensualRequest {
   producto: string;
   cantidadProducida: number;

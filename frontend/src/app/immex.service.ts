@@ -1,13 +1,14 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { CollectionSnapshot, ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult, ProduccionMensualRequest, ProduccionMensualResult } from './models';
+import { CollectionSnapshot, DashboardInventorySummary, ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult, ProduccionMensualRequest, ProduccionMensualResult } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class ImmexService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = '/api/records';
   private readonly dashboardUrl = '/api/records/summary';
+  private readonly inventoryDashboardUrl = '/api/dashboard/inventory';
   private readonly closeReportUrl = '/api/records/close-report';
   private readonly pepsConsumeUrl = '/api/records/peps/consume';
   private readonly auditUrl = '/api/audit';
@@ -21,6 +22,10 @@ export class ImmexService {
 
   summary(): Observable<ImmexDashboardSummary> {
     return this.http.get<ImmexDashboardSummary>(this.dashboardUrl);
+  }
+
+  inventorySummary(): Observable<DashboardInventorySummary> {
+    return this.http.get<DashboardInventorySummary>(this.inventoryDashboardUrl);
   }
 
   closeReport(): Observable<ImmexCloseReport> {
