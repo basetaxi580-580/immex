@@ -65,3 +65,29 @@ export interface CollectionSnapshot {
   count: number;
   sample: string[];
 }
+
+export interface ProduccionMensualRequest {
+  producto: string;
+  cantidadProducida: number;
+  mermaPct: number;
+  auditor?: string;
+  observacion?: string;
+}
+
+export interface ProduccionMensualLine {
+  material: string;
+  requerido: number;
+  descargado: number;
+  saldoPendiente: number;
+  lotesAfectados: string[];
+}
+
+export interface ProduccionMensualResult {
+  producto: string;
+  cantidadProducida: number;
+  mermaPct: number;
+  lineas: ProduccionMensualLine[];
+  movimientosDescarga: number;
+  completado: boolean;
+  message: string;
+}

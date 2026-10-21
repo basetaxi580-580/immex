@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { CollectionSnapshot, ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult } from './models';
+import { CollectionSnapshot, ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult, ProduccionMensualRequest, ProduccionMensualResult } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class ImmexService {
@@ -13,6 +13,7 @@ export class ImmexService {
   private readonly auditUrl = '/api/audit';
   private readonly collectionsUrl = '/api/admin/collections';
   private readonly importPedimentoUrl = '/api/pedimentos/import';
+  private readonly produccionMensualUrl = '/api/produccion/mensual';
 
   list(): Observable<ImmexRecord[]> {
     return this.http.get<ImmexRecord[]>(this.apiUrl);
@@ -50,6 +51,14 @@ export class ImmexService {
     partidas: Array<{ material: string; cantidad: number; valorUnitarioMxn: number }>;
   }): Observable<any> {
     return this.http.post<any>(this.importPedimentoUrl, payload);
+  }
+
+  productionPreview(payload: ProduccionMensualRequest): Observable<ProduccionMensualResult> {
+    return this.http.post<ProduccionMensualResult>(`${this.produccionMensualUrl}/preview`, payload);
+  }
+
+  productionExecute(payload: ProduccionMensualRequest): Observable<ProduccionMensualResult> {
+    return this.http.post<ProduccionMensualResult>(this.produccionMensualUrl, payload);
   }
 
   create(record: ImmexRecord): Observable<ImmexRecord> {

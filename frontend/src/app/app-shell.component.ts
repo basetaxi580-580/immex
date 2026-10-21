@@ -215,6 +215,13 @@ export class AppShellComponent {
       icon: faFileCircleCheck,
       items: [
         {
+          label: 'Producción mensual',
+          description: 'Simular consumo por BOM',
+          route: '/dashboard/production',
+          icon: faFileCircleCheck,
+          exact: true,
+        },
+        {
           label: 'Cierre mensual',
           description: 'Reporte listo para revisión',
           route: '/dashboard/close',

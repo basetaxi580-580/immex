@@ -4,9 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { ImmexService } from './immex.service';
-import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult } from './models';
+import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult, ProduccionMensualLine, ProduccionMensualResult } from './models';
 
-type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 'risk' | 'peps' | 'close' | 'audit';
+type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 'risk' | 'peps' | 'production' | 'close' | 'audit';
 
 @Component({
   selector: 'app-dashboard-page',
@@ -254,6 +254,83 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
           <p class="success" *ngIf="pepsResult">{{ pepsResult.message }}</p>
         </section>
 
+        <section *ngSwitchCase="'production'" class="card module-card" id="production-section">
+          <div class="card-head">
+            <h2>Producción mensual</h2>
+            <span>Consumo por BOM</span>
+          </div>
+
+          <form class="form" (ngSubmit)="previewProduction()">
+            <div class="two-cols">
+              <label>
+                <span>Producto</span>
+                <select [(ngModel)]="productionForm.producto" name="prodProducto" required>
+                  <option value="">Selecciona un producto</option>
+                  <option *ngFor="let product of productionProducts" [value]="product">{{ product }}</option>
+                </select>
+              </label>
+              <label>
+                <span>Cantidad producida</span>
+                <input [(ngModel)]="productionForm.cantidadProducida" name="prodCantidad" type="number" min="1" required />
+              </label>
+            </div>
+            <div class="two-cols">
+              <label>
+                <span>Merma %</span>
+                <input [(ngModel)]="productionForm.mermaPct" name="prodMerma" type="number" min="0" step="0.01" required />
+              </label>
+              <label>
+                <span>Responsable</span>
+                <input [(ngModel)]="productionForm.auditor" name="prodAuditor" placeholder="Supervisor" />
+              </label>
+            </div>
+            <label>
+              <span>Observación</span>
+              <textarea [(ngModel)]="productionForm.observacion" name="prodObservacion" rows="2" placeholder="Cierre mensual / orden de producción"></textarea>
+            </label>
+            <div class="actions">
+              <button class="primary" type="submit">Previsualizar consumo</button>
+              <button class="ghost" type="button" (click)="executeProduction()" [disabled]="!productionPreview">Confirmar producción</button>
+            </div>
+          </form>
+
+          <div class="close-report-box" *ngIf="productionPreview; else productionEmpty">
+            <p><strong>Producto:</strong> {{ productionPreview.producto }}</p>
+            <p><strong>Cantidad:</strong> {{ productionPreview.cantidadProducida }}</p>
+            <p><strong>Merma:</strong> {{ productionPreview.mermaPct }}%</p>
+            <p><strong>Movimientos:</strong> {{ productionPreview.movimientosDescarga }}</p>
+            <p><strong>Estado:</strong> {{ productionPreview.completado ? 'Listo' : 'Pendiente' }}</p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Material</th>
+                    <th>Requerido</th>
+                    <th>Descargado</th>
+                    <th>Saldo pendiente</th>
+                    <th>Lotes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let line of productionPreview.lineas">
+                    <td>{{ line.material }}</td>
+                    <td>{{ line.requerido }}</td>
+                    <td>{{ line.descargado }}</td>
+                    <td>{{ line.saldoPendiente }}</td>
+                    <td>{{ line.lotesAfectados.join(', ') || '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <ng-template #productionEmpty>
+            <p class="muted">Previsualiza la producción para ver el consumo antes de confirmar.</p>
+          </ng-template>
+
+          <p class="success" *ngIf="productionResult">{{ productionResult.message }}</p>
+          <p class="error" *ngIf="productionError">{{ productionError }}</p>
+        </section>
+
         <section *ngSwitchCase="'close'" class="card module-card" id="close-section">
           <div class="card-head">
             <h2>Cierre mensual</h2>
@@ -309,6 +386,9 @@ export class AppComponent implements OnInit, OnDestroy {
   closeReport: ImmexCloseReport | null = null;
   pepsResult: PepsOperationResult | null = null;
   auditEvents: any[] = [];
+  productionPreview: ProduccionMensualResult | null = null;
+  productionResult: ProduccionMensualResult | null = null;
+  productionError = '';
   editingId: string | null = null;
   connected = true;
   error = '';
@@ -318,6 +398,14 @@ export class AppComponent implements OnInit, OnDestroy {
     quantity: 100,
     reason: 'Consumo para producción',
     auditor: 'Especialista',
+  };
+  productionProducts = ['Arnés eléctrico automotriz', 'Carcasa de control'];
+  productionForm = {
+    producto: 'Arnés eléctrico automotriz',
+    cantidadProducida: 100,
+    mermaPct: 2,
+    auditor: 'Supervisor',
+    observacion: 'Producción mensual',
   };
 
   ngOnInit(): void {
@@ -427,6 +515,39 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
+  previewProduction(): void {
+    this.productionError = '';
+    this.service.productionPreview(this.productionForm).subscribe({
+      next: (data) => {
+        this.productionPreview = data;
+        this.productionResult = null;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.productionError = 'No se pudo previsualizar la producción.';
+      },
+    });
+  }
+
+  executeProduction(): void {
+    if (!this.productionPreview) {
+      this.productionError = 'Primero genera la previsualización.';
+      return;
+    }
+    this.service.productionExecute(this.productionForm).subscribe({
+      next: (data) => {
+        this.productionResult = data;
+        this.productionPreview = data;
+        this.cdr.markForCheck();
+        this.load();
+        this.refreshCloseReport();
+      },
+      error: () => {
+        this.productionError = 'No se pudo ejecutar la producción mensual.';
+      },
+    });
+  }
+
   runPeps(): void {
     this.service.consumePeps(this.pepsForm).subscribe({
       next: (data) => {
@@ -519,6 +640,7 @@ export class AppComponent implements OnInit, OnDestroy {
       'dashboard/summary': 'summary',
       'dashboard/risk': 'risk',
       'dashboard/peps': 'peps',
+      'dashboard/production': 'production',
       'dashboard/close': 'close',
       'dashboard/audit': 'audit',
       inventory: 'dashboard',
