@@ -14,5 +14,6 @@ export const routes: Routes = [
   { path: 'dashboard/close', component: AppComponent },
   { path: 'dashboard/audit', component: AppComponent },
   { path: 'inventory', component: InventoryPageComponent },
+  { path: 'search', component: InventoryPageComponent, data: { searchOnly: true } },
   { path: '**', redirectTo: 'dashboard' },
 ];

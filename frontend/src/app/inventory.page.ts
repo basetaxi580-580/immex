@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ImmexService } from './immex.service';
 import { ImmexRecord } from './models';
 
@@ -10,7 +11,7 @@ import { ImmexRecord } from './models';
   imports: [CommonModule, FormsModule],
   template: `
     <main class="module-shell">
-      <section class="module-hero card" id="inventory-hero">
+      <section class="module-hero card" id="inventory-hero" *ngIf="!searchOnly">
         <div>
           <p class="eyebrow">Módulo · Inventario / Pedimentos</p>
           <h1>Registro de materiales y control documental</h1>
@@ -29,7 +30,7 @@ import { ImmexRecord } from './models';
       <section class="module-grid" id="inventory-grid">
         <article class="card filter-card">
           <div class="card-head">
-            <h2>Filtros</h2>
+            <h2>{{ searchOnly ? 'Búsqueda rápida' : 'Filtros' }}</h2>
             <span>Buscar y segmentar</span>
           </div>
 
@@ -74,7 +75,7 @@ import { ImmexRecord } from './models';
           </div>
         </article>
 
-        <article class="card form-card">
+        <article class="card form-card" *ngIf="!searchOnly">
           <div class="card-head">
             <h2>{{ editingId ? 'Editar pedimento' : 'Nuevo pedimento' }}</h2>
             <span>{{ editingId ? 'Edición activa' : 'Captura rápida' }}</span>
@@ -214,6 +215,9 @@ import { ImmexRecord } from './models';
 })
 export class InventoryPageComponent implements OnInit {
   private readonly service = inject(ImmexService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly router = inject(Router);
+  readonly searchOnly = inject(ActivatedRoute).snapshot.data['searchOnly'] === true;
 
   records: ImmexRecord[] = [];
   filteredRecords: ImmexRecord[] = [];
@@ -225,6 +229,11 @@ export class InventoryPageComponent implements OnInit {
   form: ImmexRecord = this.emptyForm();
 
   ngOnInit(): void {
+    const record = history.state?.editingRecord as ImmexRecord | undefined;
+    if (record && !this.searchOnly) {
+      this.editingId = record.id ?? null;
+      this.form = { ...record };
+    }
     this.load();
   }
 
@@ -245,6 +254,7 @@ export class InventoryPageComponent implements OnInit {
       next: (data) => {
         this.records = data;
         this.applyFilters();
+        this.cdr.markForCheck();
       },
       error: () => {
         this.error = 'No se pudo cargar el inventario.';
@@ -290,6 +300,9 @@ export class InventoryPageComponent implements OnInit {
   edit(record: ImmexRecord): void {
     this.editingId = record.id ?? null;
     this.form = { ...record };
+    if (this.searchOnly) {
+      void this.router.navigateByUrl('/inventory', { state: { editingRecord: record } });
+    }
   }
 
   remove(record: ImmexRecord): void {

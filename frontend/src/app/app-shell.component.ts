@@ -237,7 +237,7 @@ export class AppShellComponent {
         {
           label: 'Búsqueda rápida',
           description: 'Filtrar y localizar información',
-          route: '/inventory',
+          route: '/search',
           icon: faMagnifyingGlass,
           exact: true,
         },
@@ -254,6 +254,8 @@ export class AppShellComponent {
   protected toggleGroup(groupHeading: string): void {
     if (!this.isSidebarOpen) {
       this.isSidebarOpen = true;
+      this.expandedGroups.add(groupHeading);
+      return;
     }
 
     if (this.expandedGroups.has(groupHeading)) {
@@ -269,7 +271,7 @@ export class AppShellComponent {
   }
 
   protected isGroupActive(group: SidebarGroup): boolean {
-    return group.items.some((item) => this.router.url === item.route || this.router.url.startsWith(`${item.route}/`));
+    return group.items.some((item) => this.router.url === item.route);
   }
 
   protected collapseOnMobile(): void {

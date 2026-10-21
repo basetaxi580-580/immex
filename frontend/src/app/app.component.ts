@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
@@ -14,11 +14,12 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
   imports: [CommonModule, FormsModule],
   template: `
     <main class="shell">
+      <p class="error" *ngIf="error" role="alert">{{ error }}</p>
       <ng-container [ngSwitch]="activeView">
         <section *ngSwitchCase="'dashboard'" class="dashboard-panel">
           <header class="card hero-summary" id="dashboard">
             <div>
-              <p class="eyebrow">Panel general</p>
+              <p class="eyebrow">IMMEX · Operación</p>
               <h1>Panel general</h1>
               <p class="subtitle">Resumen operativo del sistema IMMEX con indicadores activos y acceso rápido a las secciones.</p>
             </div>
@@ -298,6 +299,7 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
 })
 export class AppComponent implements OnInit, OnDestroy {
   private readonly service = inject(ImmexService);
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly router = inject(Router);
   private routerSubscription?: Subscription;
 
@@ -320,6 +322,11 @@ export class AppComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.syncView();
+    const editingRecord = history.state?.editingRecord as ImmexRecord | undefined;
+    if (editingRecord && this.activeView === 'movement') {
+      this.editingId = editingRecord.id ?? null;
+      this.form = { ...editingRecord };
+    }
     this.routerSubscription = this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
       .subscribe(() => this.syncView());
@@ -389,9 +396,11 @@ export class AppComponent implements OnInit, OnDestroy {
         this.connected = true;
         this.error = '';
         this.loadSummary();
+        this.cdr.markForCheck();
       },
       error: () => {
         this.connected = false;
+        this.cdr.markForCheck();
         this.error = 'No se pudo conectar al backend.';
       },
     });
@@ -399,21 +408,21 @@ export class AppComponent implements OnInit, OnDestroy {
 
   loadSummary(): void {
     this.service.summary().subscribe({
-      next: (data) => (this.summary = data),
+      next: (data) => { this.summary = data; this.cdr.markForCheck(); },
       error: () => (this.summary = null),
     });
   }
 
   refreshCloseReport(): void {
     this.service.closeReport().subscribe({
-      next: (data) => (this.closeReport = data),
+      next: (data) => { this.closeReport = data; this.cdr.markForCheck(); },
       error: () => (this.closeReport = null),
     });
   }
 
   refreshAudit(): void {
     this.service.auditEvents().subscribe({
-      next: (data) => (this.auditEvents = data),
+      next: (data) => { this.auditEvents = data; this.cdr.markForCheck(); },
       error: () => (this.auditEvents = []),
     });
   }
@@ -422,6 +431,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.service.consumePeps(this.pepsForm).subscribe({
       next: (data) => {
         this.pepsResult = data;
+        this.cdr.markForCheck();
         this.load();
         this.refreshCloseReport();
       },
@@ -465,7 +475,7 @@ export class AppComponent implements OnInit, OnDestroy {
       auditor: record.auditor ?? '',
     };
     this.activeView = 'movement';
-    void this.router.navigateByUrl('/dashboard/movement');
+    void this.router.navigateByUrl('/dashboard/movement', { state: { editingRecord: record } });
   }
 
   remove(record: ImmexRecord): void {
@@ -514,6 +524,7 @@ export class AppComponent implements OnInit, OnDestroy {
       inventory: 'dashboard',
     };
     this.activeView = routeMap[path] ?? 'dashboard';
+    document.querySelector('.page-host')?.scrollTo(0, 0);
   }
 
   private emptyForm(): ImmexRecord {
