@@ -4,7 +4,7 @@ import java.time.Instant;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-@Document("immex_audit_events")
+@Document("evento_auditoria")
 public class AuditEvent {
   @Id
   private String id;

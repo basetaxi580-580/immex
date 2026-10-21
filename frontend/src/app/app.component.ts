@@ -4,9 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { ImmexService } from './immex.service';
-import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult } from './models';
+import { DashboardInventorySummary, ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult, ProduccionMensualLine, ProduccionMensualResult } from './models';
 
-type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 'risk' | 'peps' | 'close' | 'audit';
+type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 'risk' | 'peps' | 'production' | 'export' | 'close' | 'audit';
 
 @Component({
   selector: 'app-dashboard-page',
@@ -24,31 +24,41 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
               <p class="subtitle">Resumen operativo del sistema IMMEX con indicadores activos y acceso rápido a las secciones.</p>
             </div>
             <div class="summary-inline">
-              <div><span>Registros</span><strong>{{ summary?.totalRecords ?? records.length }}</strong></div>
-              <div><span>Vencen pronto</span><strong>{{ expiringSoonCount }}</strong></div>
-              <div><span>Riesgo total</span><strong>{{ (summary?.riskTotal ?? riskTotal) | currency:'MXN':'symbol':'1.0-0' }}</strong></div>
-              <div><span>Estado de API</span><strong>{{ connected ? 'API OK' : 'Sin API' }}</strong></div>
-              <div><span>90 días</span><strong>{{ alert90Count }}</strong></div>
-              <div><span>60 días</span><strong>{{ alert60Count }}</strong></div>
-              <div><span>30 días</span><strong>{{ alert30Count }}</strong></div>
-              <div><span>Entradas</span><strong>{{ entryCount }}</strong></div>
-              <div><span>Consumos</span><strong>{{ consumptionCount }}</strong></div>
-              <div><span>Exportaciones</span><strong>{{ exportCount }}</strong></div>
-              <div><span>Listos para cierre</span><strong>{{ closeReadyCount }}</strong></div>
+              <div><span>Saldo total</span><strong>{{ inventorySaldoTotal | currency:'MXN':'symbol':'1.0-0' }}</strong></div>
+              <div><span>Por vencer 90 días</span><strong>{{ inventoryMontoPorVencer | currency:'MXN':'symbol':'1.0-0' }}</strong></div>
+              <div><span>Vencido</span><strong>{{ inventoryMontoVencido | currency:'MXN':'symbol':'1.0-0' }}</strong></div>
             </div>
           </header>
 
           <section class="card risk-card" id="risk-section">
             <div class="card-head">
-              <h2>Excepciones y riesgo</h2>
-              <span>{{ expiringSoonCount }} urgentes</span>
+              <h2>Materiales por urgencia</h2>
+              <span>{{ inventoryRows.length }} materiales</span>
             </div>
-            <div class="exception-list">
-              <div class="exception-item" *ngFor="let record of riskAlerts">
-                <strong>{{ record.material }}</strong>
-                <span>{{ record.pedimento }} · {{ daysLeft(record) }} días · {{ riskFor(record) | currency:'MXN':'symbol':'1.0-0' }}</span>
-              </div>
-              <div class="empty" *ngIf="!riskAlerts.length">Sin excepciones por ahora.</div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Material</th>
+                    <th>Saldo</th>
+                    <th>Fecha vencimiento</th>
+                    <th>Monto en riesgo</th>
+                    <th>Urgencia</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of inventoryRows">
+                    <td><strong>{{ row.material }}</strong></td>
+                    <td>{{ row.saldo }}</td>
+                    <td>{{ row.fechaVencimiento ? formatDate(row.fechaVencimiento) : '—' }}</td>
+                    <td>{{ row.montoEnRiesgo | currency:'MXN':'symbol':'1.0-0' }}</td>
+                    <td><span class="badge" [class.warning]="row.diasRestantes <= 90" [class.danger]="row.estado === 'vencido'">{{ row.estado }} · {{ row.diasRestantes }} días</span></td>
+                  </tr>
+                  <tr *ngIf="!inventoryRows.length">
+                    <td colspan="5" class="empty">No hay materiales con saldo disponible.</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </section>
         </section>
@@ -254,6 +264,83 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
           <p class="success" *ngIf="pepsResult">{{ pepsResult.message }}</p>
         </section>
 
+        <section *ngSwitchCase="'production'" class="card module-card" id="production-section">
+          <div class="card-head">
+            <h2>Producción mensual</h2>
+            <span>Consumo por BOM</span>
+          </div>
+
+          <form class="form" (ngSubmit)="previewProduction()">
+            <div class="two-cols">
+              <label>
+                <span>Producto</span>
+                <select [(ngModel)]="productionForm.producto" name="prodProducto" required>
+                  <option value="">Selecciona un producto</option>
+                  <option *ngFor="let product of productionProducts" [value]="product">{{ product }}</option>
+                </select>
+              </label>
+              <label>
+                <span>Cantidad producida</span>
+                <input [(ngModel)]="productionForm.cantidadProducida" name="prodCantidad" type="number" min="1" required />
+              </label>
+            </div>
+            <div class="two-cols">
+              <label>
+                <span>Merma %</span>
+                <input [(ngModel)]="productionForm.mermaPct" name="prodMerma" type="number" min="0" step="0.01" required />
+              </label>
+              <label>
+                <span>Responsable</span>
+                <input [(ngModel)]="productionForm.auditor" name="prodAuditor" placeholder="Supervisor" />
+              </label>
+            </div>
+            <label>
+              <span>Observación</span>
+              <textarea [(ngModel)]="productionForm.observacion" name="prodObservacion" rows="2" placeholder="Cierre mensual / orden de producción"></textarea>
+            </label>
+            <div class="actions">
+              <button class="primary" type="submit">Previsualizar consumo</button>
+              <button class="ghost" type="button" (click)="executeProduction()" [disabled]="!productionPreview">Confirmar producción</button>
+            </div>
+          </form>
+
+          <div class="close-report-box" *ngIf="productionPreview; else productionEmpty">
+            <p><strong>Producto:</strong> {{ productionPreview.producto }}</p>
+            <p><strong>Cantidad:</strong> {{ productionPreview.cantidadProducida }}</p>
+            <p><strong>Merma:</strong> {{ productionPreview.mermaPct }}%</p>
+            <p><strong>Movimientos:</strong> {{ productionPreview.movimientosDescarga }}</p>
+            <p><strong>Estado:</strong> {{ productionPreview.completado ? 'Listo' : 'Pendiente' }}</p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Material</th>
+                    <th>Requerido</th>
+                    <th>Descargado</th>
+                    <th>Saldo pendiente</th>
+                    <th>Lotes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let line of productionPreview.lineas">
+                    <td>{{ line.material }}</td>
+                    <td>{{ line.requerido }}</td>
+                    <td>{{ line.descargado }}</td>
+                    <td>{{ line.saldoPendiente }}</td>
+                    <td>{{ line.lotesAfectados.join(', ') || '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <ng-template #productionEmpty>
+            <p class="muted">Previsualiza la producción para ver el consumo antes de confirmar.</p>
+          </ng-template>
+
+          <p class="success" *ngIf="productionResult">{{ productionResult.message }}</p>
+          <p class="error" *ngIf="productionError">{{ productionError }}</p>
+        </section>
+
         <section *ngSwitchCase="'close'" class="card module-card" id="close-section">
           <div class="card-head">
             <h2>Cierre mensual</h2>
@@ -306,9 +393,13 @@ export class AppComponent implements OnInit, OnDestroy {
   activeView: DashboardView = 'dashboard';
   records: ImmexRecord[] = [];
   summary: ImmexDashboardSummary | null = null;
+  inventorySummary: DashboardInventorySummary | null = null;
   closeReport: ImmexCloseReport | null = null;
   pepsResult: PepsOperationResult | null = null;
   auditEvents: any[] = [];
+  productionPreview: ProduccionMensualResult | null = null;
+  productionResult: ProduccionMensualResult | null = null;
+  productionError = '';
   editingId: string | null = null;
   connected = true;
   error = '';
@@ -318,6 +409,14 @@ export class AppComponent implements OnInit, OnDestroy {
     quantity: 100,
     reason: 'Consumo para producción',
     auditor: 'Especialista',
+  };
+  productionProducts = ['Arnés eléctrico automotriz', 'Carcasa de control'];
+  productionForm = {
+    producto: 'Arnés eléctrico automotriz',
+    cantidadProducida: 100,
+    mermaPct: 2,
+    auditor: 'Supervisor',
+    observacion: 'Producción mensual',
   };
 
   ngOnInit(): void {
@@ -331,6 +430,7 @@ export class AppComponent implements OnInit, OnDestroy {
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
       .subscribe(() => this.syncView());
     this.load();
+    this.loadInventorySummary();
     this.refreshCloseReport();
     this.refreshAudit();
   }
@@ -341,6 +441,22 @@ export class AppComponent implements OnInit, OnDestroy {
 
   get riskTotal(): number {
     return this.summary?.riskTotal ?? this.records.reduce((sum, record) => sum + this.riskFor(record), 0);
+  }
+
+  get inventoryRows() {
+    return [...(this.inventorySummary?.materiales ?? [])].sort((a, b) => a.diasRestantes - b.diasRestantes);
+  }
+
+  get inventorySaldoTotal(): number {
+    return this.inventorySummary?.saldoTotalMxn ?? 0;
+  }
+
+  get inventoryMontoVencido(): number {
+    return this.inventorySummary?.montoVencidoMxn ?? 0;
+  }
+
+  get inventoryMontoPorVencer(): number {
+    return this.inventorySummary?.montoPorVencerMxn ?? 0;
   }
 
   get expiringSoonCount(): number {
@@ -413,6 +529,13 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
+  loadInventorySummary(): void {
+    this.service.inventorySummary().subscribe({
+      next: (data) => { this.inventorySummary = data; this.cdr.markForCheck(); },
+      error: () => (this.inventorySummary = null),
+    });
+  }
+
   refreshCloseReport(): void {
     this.service.closeReport().subscribe({
       next: (data) => { this.closeReport = data; this.cdr.markForCheck(); },
@@ -424,6 +547,39 @@ export class AppComponent implements OnInit, OnDestroy {
     this.service.auditEvents().subscribe({
       next: (data) => { this.auditEvents = data; this.cdr.markForCheck(); },
       error: () => (this.auditEvents = []),
+    });
+  }
+
+  previewProduction(): void {
+    this.productionError = '';
+    this.service.productionPreview(this.productionForm).subscribe({
+      next: (data) => {
+        this.productionPreview = data;
+        this.productionResult = null;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.productionError = 'No se pudo previsualizar la producción.';
+      },
+    });
+  }
+
+  executeProduction(): void {
+    if (!this.productionPreview) {
+      this.productionError = 'Primero genera la previsualización.';
+      return;
+    }
+    this.service.productionExecute(this.productionForm).subscribe({
+      next: (data) => {
+        this.productionResult = data;
+        this.productionPreview = data;
+        this.cdr.markForCheck();
+        this.load();
+        this.refreshCloseReport();
+      },
+      error: () => {
+        this.productionError = 'No se pudo ejecutar la producción mensual.';
+      },
     });
   }
 
@@ -519,6 +675,7 @@ export class AppComponent implements OnInit, OnDestroy {
       'dashboard/summary': 'summary',
       'dashboard/risk': 'risk',
       'dashboard/peps': 'peps',
+      'dashboard/production': 'production',
       'dashboard/close': 'close',
       'dashboard/audit': 'audit',
       inventory: 'dashboard',

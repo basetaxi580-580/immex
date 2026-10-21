@@ -59,3 +59,51 @@ export interface AuditEvent {
   details?: string;
   createdAt?: string;
 }
+
+export interface CollectionSnapshot {
+  name: string;
+  count: number;
+  sample: string[];
+}
+
+export interface DashboardMaterialRow {
+  material: string;
+  saldo: number;
+  fechaVencimiento: string | null;
+  montoEnRiesgo: number;
+  diasRestantes: number;
+  estado: string;
+}
+
+export interface DashboardInventorySummary {
+  saldoTotalMxn: number;
+  montoVencidoMxn: number;
+  montoPorVencerMxn: number;
+  materiales: DashboardMaterialRow[];
+}
+
+export interface ProduccionMensualRequest {
+  producto: string;
+  cantidadProducida: number;
+  mermaPct: number;
+  auditor?: string;
+  observacion?: string;
+}
+
+export interface ProduccionMensualLine {
+  material: string;
+  requerido: number;
+  descargado: number;
+  saldoPendiente: number;
+  lotesAfectados: string[];
+}
+
+export interface ProduccionMensualResult {
+  producto: string;
+  cantidadProducida: number;
+  mermaPct: number;
+  lineas: ProduccionMensualLine[];
+  movimientosDescarga: number;
+  completado: boolean;
+  message: string;
+}
