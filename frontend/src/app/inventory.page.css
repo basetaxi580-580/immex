@@ -205,7 +205,8 @@ button.link.danger {
   border-color: rgba(185, 28, 28, 0.18);
 }
 
-.table-card {
+.table-card,
+.collection-card {
   padding: 20px;
 }
 
@@ -263,6 +264,31 @@ tbody td {
 .badge.danger {
   background: #fee2e2;
   color: #991b1b;
+}
+
+.collection-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.collection-item {
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: #f8fafc;
+  display: grid;
+  gap: 6px;
+}
+
+.collection-item strong { color: #0f172a; }
+.collection-item span { color: #64748b; }
+.collection-item pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #334155;
+  font-size: 0.82rem;
 }
 
 .flow-list {
@@ -361,7 +387,8 @@ tbody td {
 
 @media (max-width: 1200px) {
   .module-grid,
-  .module-hero {
+  .module-hero,
+  .collection-grid {
     grid-template-columns: 1fr;
   }
 

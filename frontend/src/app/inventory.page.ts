@@ -3,7 +3,7 @@ import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ImmexService } from './immex.service';
-import { ImmexRecord } from './models';
+import { CollectionSnapshot, ImmexRecord } from './models';
 
 @Component({
   selector: 'app-inventory-page',
@@ -209,6 +209,20 @@ import { ImmexRecord } from './models';
           </table>
         </div>
       </section>
+
+      <section class="card collection-card" *ngIf="!searchOnly">
+        <div class="card-head">
+          <h2>Colecciones creadas</h2>
+          <span>Datos ficticios reales</span>
+        </div>
+        <div class="collection-grid">
+          <article class="collection-item" *ngFor="let item of collections">
+            <strong>{{ item.name }}</strong>
+            <span>{{ item.count }} documentos</span>
+            <pre *ngIf="item.sample.length">{{ item.sample[0] }}</pre>
+          </article>
+        </div>
+      </section>
     </main>
   `,
   styleUrl: './inventory.page.css',
@@ -221,6 +235,7 @@ export class InventoryPageComponent implements OnInit {
 
   records: ImmexRecord[] = [];
   filteredRecords: ImmexRecord[] = [];
+  collections: CollectionSnapshot[] = [];
   editingId: string | null = null;
   error = '';
   searchTerm = '';
@@ -235,6 +250,9 @@ export class InventoryPageComponent implements OnInit {
       this.form = { ...record };
     }
     this.load();
+    if (!this.searchOnly) {
+      this.loadCollections();
+    }
   }
 
   get activeCount(): number {
@@ -258,6 +276,18 @@ export class InventoryPageComponent implements OnInit {
       },
       error: () => {
         this.error = 'No se pudo cargar el inventario.';
+      },
+    });
+  }
+
+  loadCollections(): void {
+    this.service.collections().subscribe({
+      next: (data) => {
+        this.collections = data;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.collections = [];
       },
     });
   }

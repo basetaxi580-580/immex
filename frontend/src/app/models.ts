@@ -59,3 +59,9 @@ export interface AuditEvent {
   details?: string;
   createdAt?: string;
 }
+
+export interface CollectionSnapshot {
+  name: string;
+  count: number;
+  sample: string[];
+}

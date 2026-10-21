@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult } from './models';
+import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult, CollectionSnapshot } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class ImmexService {
@@ -11,6 +11,7 @@ export class ImmexService {
   private readonly closeReportUrl = '/api/records/close-report';
   private readonly pepsConsumeUrl = '/api/records/peps/consume';
   private readonly auditUrl = '/api/audit';
+  private readonly collectionsUrl = '/api/admin/collections';
 
   list(): Observable<ImmexRecord[]> {
     return this.http.get<ImmexRecord[]>(this.apiUrl);
@@ -35,6 +36,10 @@ export class ImmexService {
 
   auditEvents(): Observable<any[]> {
     return this.http.get<any[]>(this.auditUrl);
+  }
+
+  collections(): Observable<CollectionSnapshot[]> {
+    return this.http.get<CollectionSnapshot[]>(this.collectionsUrl);
   }
 
   create(record: ImmexRecord): Observable<ImmexRecord> {
