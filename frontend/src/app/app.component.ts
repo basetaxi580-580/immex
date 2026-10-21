@@ -61,6 +61,28 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
               </table>
             </div>
           </section>
+
+          <section class="card module-card" id="anexo24-section">
+            <div class="card-head">
+              <h2>Anexo 24</h2>
+              <span>Excel por lote</span>
+            </div>
+            <div class="form compact-form">
+              <div class="two-cols">
+                <label>
+                  <span>Razón social</span>
+                  <input [(ngModel)]="anexo24Filters.razonSocial" name="anexo24RazonSocial" placeholder="Aerosistemas del Norte, S.A. de C.V." />
+                </label>
+                <label>
+                  <span>Mes</span>
+                  <input [(ngModel)]="anexo24Filters.mes" name="anexo24Mes" type="month" />
+                </label>
+              </div>
+              <div class="actions">
+                <button class="primary" type="button" (click)="downloadAnexo24()">Descargar reporte</button>
+              </div>
+            </div>
+          </section>
         </section>
 
         <section *ngSwitchCase="'movement'" class="card form-card" id="form-card">
@@ -419,6 +441,10 @@ export class AppComponent implements OnInit, OnDestroy {
     auditor: 'Supervisor',
     observacion: 'Producción mensual',
   };
+  anexo24Filters = {
+    razonSocial: '',
+    mes: '',
+  };
 
   ngOnInit(): void {
     this.syncView();
@@ -566,13 +592,16 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   downloadAnexo24(): void {
-    const query: Anexo24Query = { razonSocial: '', mes: '' };
+    const query: Anexo24Query = {
+      razonSocial: this.anexo24Filters.razonSocial?.trim() || undefined,
+      mes: this.anexo24Filters.mes?.trim() || undefined,
+    };
     this.service.downloadAnexo24(query).subscribe({
       next: (blob) => {
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement('a');
         anchor.href = url;
-        anchor.download = 'anexo24.xlsx';
+        anchor.download = `anexo24${query.mes ? `-${query.mes}` : ''}.xlsx`;
         anchor.click();
         URL.revokeObjectURL(url);
       },
