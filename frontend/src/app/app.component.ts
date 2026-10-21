@@ -6,7 +6,7 @@ import { filter, Subscription } from 'rxjs';
 import { ImmexService } from './immex.service';
 import { ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult, ProduccionMensualLine, ProduccionMensualResult } from './models';
 
-type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 'risk' | 'peps' | 'production' | 'close' | 'audit';
+type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 'risk' | 'peps' | 'production' | 'export' | 'close' | 'audit';
 
 @Component({
   selector: 'app-dashboard-page',

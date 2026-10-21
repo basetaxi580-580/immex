@@ -90,7 +90,7 @@ public class LoteMovimientoService {
         new Document("_id", id),
         new Document("$set", new Document("saldo", saldoDespues)
             .append("diasRestantes", diasRestantes)
-            .append("estado", saldoDespues <= 0 ? "vencido" : (diasRestantes <= 90 ? "por vencer" : "vigente"))
+            .append("estado", saldoDespues <= 0 ? "cerrado" : (diasRestantes <= 90 ? "por vencer" : "vigente"))
             .append("updatedAt", Instant.now().toString())));
   }
 
