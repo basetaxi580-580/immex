@@ -1,8 +1,10 @@
 package com.immex.backend.service;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.bson.Document;
+import org.bson.types.ObjectId;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -10,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class CollectionBootstrap implements ApplicationRunner {
+  private static final int DEFAULT_LOTE_PLAZO_MESES = 18;
   private final MongoTemplate mongoTemplate;
 
   public CollectionBootstrap(MongoTemplate mongoTemplate) {
@@ -43,16 +46,9 @@ public class CollectionBootstrap implements ApplicationRunner {
             .append("fraccion", "85369099")));
 
     ensureCollection("lote_material", List.of(
-        new Document("material", "Resina ABS natural")
-            .append("saldo", 1200)
-            .append("fechaEntrada", LocalDate.of(2026, 9, 18).toString())
-            .append("fechaVencimiento", LocalDate.of(2027, 3, 18).toString())
-            .append("pedimento", "24 48 3021 9001234"),
-        new Document("material", "Conector 12 pines")
-            .append("saldo", 8000)
-            .append("fechaEntrada", LocalDate.of(2026, 5, 3).toString())
-            .append("fechaVencimiento", LocalDate.of(2026, 10, 30).toString())
-            .append("pedimento", "24 48 3021 9001234")));
+        lote("Resina ABS natural", "resina", 1200, LocalDate.of(2026, 9, 18), "24 48 3021 9001234"),
+        lote("Conector 12 pines", "electronico", 8000, LocalDate.of(2026, 5, 3), "24 48 3021 9001234")));
+    refreshLoteMaterialState();
 
     ensureCollection("bom", List.of(
         new Document("numeroBom", "BOM-AR-2401")
@@ -123,6 +119,94 @@ public class CollectionBootstrap implements ApplicationRunner {
             .append("usuario", "Auditor IMMEX")
             .append("motivo", "Cierre documental mensual")
             .append("fecha", LocalDate.of(2026, 10, 21).toString())));
+  }
+
+  private Document lote(String material, String tipoMaterial, int saldo, LocalDate fechaEntrada, String pedimento) {
+    int plazoMeses = resolvePlazoMeses(tipoMaterial);
+    LocalDate fechaVencimiento = fechaEntrada.plusMonths(plazoMeses);
+    long diasRestantes = ChronoUnit.DAYS.between(LocalDate.now(), fechaVencimiento);
+    return new Document("material", material)
+        .append("tipoMaterial", tipoMaterial)
+        .append("plazoMeses", plazoMeses)
+        .append("saldo", saldo)
+        .append("fechaEntrada", fechaEntrada.toString())
+        .append("fechaVencimiento", fechaVencimiento.toString())
+        .append("diasRestantes", diasRestantes)
+        .append("estado", estadoDe(diasRestantes))
+        .append("pedimento", pedimento);
+  }
+
+  private void refreshLoteMaterialState() {
+    if (!mongoTemplate.collectionExists("lote_material")) {
+      return;
+    }
+    mongoTemplate.getCollection("lote_material").find().forEach(doc -> {
+      Object id = doc.get("_id");
+      if (!(id instanceof ObjectId objectId)) {
+        return;
+      }
+      LocalDate fechaEntrada = readDate(doc.get("fechaEntrada"));
+      if (fechaEntrada == null) {
+        return;
+      }
+      String tipoMaterial = stringValue(doc.get("tipoMaterial"));
+      if (tipoMaterial.isBlank()) {
+        tipoMaterial = inferTipoMaterial(stringValue(doc.get("material")));
+      }
+      int plazoMeses = doc.getInteger("plazoMeses", resolvePlazoMeses(tipoMaterial));
+      LocalDate fechaVencimiento = fechaEntrada.plusMonths(plazoMeses);
+      long diasRestantes = ChronoUnit.DAYS.between(LocalDate.now(), fechaVencimiento);
+      mongoTemplate.getCollection("lote_material").updateOne(
+          new Document("_id", objectId),
+          new Document("$set", new Document("tipoMaterial", tipoMaterial)
+              .append("plazoMeses", plazoMeses)
+              .append("fechaVencimiento", fechaVencimiento.toString())
+              .append("diasRestantes", diasRestantes)
+              .append("estado", estadoDe(diasRestantes))));
+    });
+  }
+
+  private int resolvePlazoMeses(String tipoMaterial) {
+    String normalized = tipoMaterial == null ? "" : tipoMaterial.trim().toLowerCase();
+    return switch (normalized) {
+      case "resina", "plastico", "plástico", "electronico", "electrónico", "metalmecanica", "metalmecánica", "quimico", "químico" -> DEFAULT_LOTE_PLAZO_MESES;
+      default -> DEFAULT_LOTE_PLAZO_MESES;
+    };
+  }
+
+  private String inferTipoMaterial(String material) {
+    String normalized = material == null ? "" : material.toLowerCase();
+    if (normalized.contains("resina") || normalized.contains("plástico") || normalized.contains("plastico")) {
+      return "resina";
+    }
+    if (normalized.contains("conector") || normalized.contains("arnés") || normalized.contains("arnes")) {
+      return "electronico";
+    }
+    return "general";
+  }
+
+  private String estadoDe(long diasRestantes) {
+    if (diasRestantes < 0) {
+      return "vencido";
+    }
+    if (diasRestantes <= 90) {
+      return "por vencer";
+    }
+    return "vigente";
+  }
+
+  private LocalDate readDate(Object value) {
+    if (value == null) {
+      return null;
+    }
+    if (value instanceof LocalDate localDate) {
+      return localDate;
+    }
+    return LocalDate.parse(value.toString());
+  }
+
+  private String stringValue(Object value) {
+    return value == null ? "" : value.toString();
   }
 
   private void ensureCollection(String collectionName, List<Document> samples) {
