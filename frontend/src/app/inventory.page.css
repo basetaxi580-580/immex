@@ -16,7 +16,7 @@
 
 .module-hero h1 {
   margin: 4px 0 10px;
-  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  font-size: clamp(1.3rem, 2vw, 1.7rem);
   color: #0f172a;
 }
 
@@ -53,7 +53,7 @@
 
 .module-grid {
   display: grid;
-  grid-template-columns: 0.9fr 1.1fr;
+  grid-template-columns: minmax(0,0.9fr) minmax(0,1.1fr);
   gap: 20px;
   align-items: start;
 }
@@ -61,7 +61,8 @@
 .card {
   padding: 20px;
   border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 24px;
+  min-width: 0;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
 }
@@ -184,7 +185,7 @@ button {
 
 button.primary {
   color: #fff;
-  background: linear-gradient(135deg, #0f766e, #0f172a);
+  background: #1e3a5f;
 }
 
 button.ghost,
@@ -264,22 +265,115 @@ tbody td {
   color: #991b1b;
 }
 
-.error {
-  margin-top: 10px;
-  color: #b91c1c;
+.flow-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #374151;
+  display: grid;
+  gap: 12px;
+  line-height: 1.55;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.summary-grid div {
+  padding: 14px;
+  display: grid;
+  gap: 4px;
+}
+
+.summary-grid span {
+  color: #0f766e;
+  font-size: 0.9rem;
   font-weight: 700;
 }
 
-@media (max-width: 1100px) {
-  .module-hero,
-  .module-grid {
+.summary-grid strong {
+  color: #111827;
+  font-size: 1.45rem;
+}
+
+.exception-list,
+.audit-list {
+  display: grid;
+  gap: 12px;
+}
+
+.exception-item,
+.audit-item,
+.close-report-box {
+  padding: 14px;
+  display: grid;
+  gap: 6px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.exception-item strong,
+.audit-item strong {
+  color: #111827;
+}
+
+.exception-item span,
+.audit-item span {
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.audit-item p {
+  color: #374151;
+  margin: 0;
+}
+
+.success {
+  color: #166534;
+  font-weight: 700;
+  margin-top: 10px;
+}
+
+.warning-list {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.warning-chip {
+  background: #fff4cc;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.error {
+  color: #b91c1c;
+  margin-top: 10px;
+  font-weight: 700;
+}
+
+.empty {
+  padding: 12px 0;
+}
+
+@media (max-width: 1200px) {
+  .module-grid,
+  .module-hero {
     grid-template-columns: 1fr;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
   }
 }
 
 @media (max-width: 720px) {
   .module-stats,
-  .two-cols {
+  .two-cols,
+  .summary-grid {
     grid-template-columns: 1fr;
   }
 }
