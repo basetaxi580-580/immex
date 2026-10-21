@@ -43,6 +43,7 @@ public class PedimentoImportService {
       Document lote = new Document("material", material)
           .append("tipoMaterial", tipoMaterial)
           .append("plazoMeses", plazoMeses)
+          .append("saldoInicial", cantidad)
           .append("saldo", cantidad)
           .append("fechaEntrada", fecha.toString())
           .append("fechaVencimiento", fechaVencimiento.toString())

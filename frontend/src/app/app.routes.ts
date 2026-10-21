@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { AppComponent } from './app.component';
 import { InventoryPageComponent } from './inventory.page';
+import { AuditorPageComponent } from './auditor.page';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
@@ -12,8 +13,9 @@ export const routes: Routes = [
   { path: 'dashboard/risk', component: AppComponent },
   { path: 'dashboard/peps', component: AppComponent },
   { path: 'dashboard/close', component: AppComponent },
-  { path: 'dashboard/audit', component: AppComponent },
+  { path: 'dashboard/audit', component: AuditorPageComponent },
   { path: 'dashboard/production', component: AppComponent },
+  { path: 'dashboard/auditor', redirectTo: 'dashboard/audit' },
   { path: 'inventory', component: InventoryPageComponent },
   { path: 'search', component: InventoryPageComponent, data: { searchOnly: true } },
   { path: '**', redirectTo: 'dashboard' },

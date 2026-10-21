@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { CollectionSnapshot, DashboardInventorySummary, ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult, ProduccionMensualRequest, ProduccionMensualResult } from './models';
+import { CollectionSnapshot, DashboardInventorySummary, ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult, ProduccionMensualRequest, ProduccionMensualResult, AuditEvent } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class ImmexService {
@@ -41,8 +41,8 @@ export class ImmexService {
     return this.http.post<PepsOperationResult>(this.pepsConsumeUrl, payload);
   }
 
-  auditEvents(): Observable<any[]> {
-    return this.http.get<any[]>(this.auditUrl);
+  auditEvents(): Observable<AuditEvent[]> {
+    return this.http.get<AuditEvent[]>(this.auditUrl);
   }
 
   collections(): Observable<CollectionSnapshot[]> {
