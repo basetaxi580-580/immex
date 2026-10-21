@@ -1,7 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { ImmexService } from './immex.service';
+import { DashboardInventorySummary, DashboardMaterialRow } from './models';
 import {
   faBars,
   faBoxesStacked,
@@ -17,6 +19,8 @@ import {
   faTriangleExclamation,
   faUserShield,
 } from '@fortawesome/free-solid-svg-icons';
+
+type AlertItem = DashboardMaterialRow & { accionSugerida: 'exportar' | 'retornar' | 'importar en definitiva' };
 
 type SidebarLink = {
   label: string;
@@ -108,9 +112,38 @@ type SidebarGroup = {
             <p class="eyebrow">IMMEX / GCP</p>
             <h1>Panel de operación</h1>
           </div>
-          <div class="topbar-meta">
-            <span>Instancia: immex-vm</span>
-            <span>Swagger activo</span>
+          <div class="topbar-actions">
+            <button
+              type="button"
+              class="alert-bell"
+              (click)="toggleAlerts()"
+              [attr.aria-expanded]="alertsOpen"
+              aria-label="Alertas de vencimiento"
+              title="Alertas de vencimiento"
+            >
+              <fa-icon [icon]="faTriangleExclamation"></fa-icon>
+              <span class="alert-count" *ngIf="alertItems.length">{{ alertItems.length }}</span>
+            </button>
+            <div class="alerts-panel" *ngIf="alertsOpen">
+              <div class="alerts-head">
+                <strong>Alertas de vencimiento</strong>
+                <span>{{ alertItems.length }} activas</span>
+              </div>
+              <div class="alerts-empty" *ngIf="!alertItems.length">Sin alertas activas.</div>
+              <div class="alerts-list" *ngIf="alertItems.length">
+                <article class="alert-item" *ngFor="let item of alertItems">
+                  <div>
+                    <strong>{{ item.material }}</strong>
+                    <span>{{ item.montoEnRiesgo | currency:'MXN':'symbol':'1.0-0' }}</span>
+                  </div>
+                  <p>{{ item.diasRestantes }} días · Sugerencia: {{ item.accionSugerida }}</p>
+                </article>
+              </div>
+            </div>
+            <div class="topbar-meta">
+              <span>Instancia: immex-vm</span>
+              <span>Swagger activo</span>
+            </div>
           </div>
         </header>
 
@@ -122,11 +155,15 @@ type SidebarGroup = {
   `,
   styleUrl: './app-shell.component.css',
 })
-export class AppShellComponent {
+export class AppShellComponent implements OnInit {
+  private readonly service = inject(ImmexService);
   protected readonly faBars = faBars;
   protected readonly faChevronLeft = faChevronLeft;
+  protected readonly faTriangleExclamation = faTriangleExclamation;
 
   protected isSidebarOpen = typeof window !== 'undefined' && window.innerWidth > 1100;
+  protected alertsOpen = false;
+  protected inventorySummary: DashboardInventorySummary | null = null;
   protected readonly expandedGroups = new Set<string>([
     'Panel general',
     'Inventario y movimientos',
@@ -253,6 +290,52 @@ export class AppShellComponent {
   ];
 
   constructor(private readonly router: Router) {}
+
+  ngOnInit(): void {
+    this.loadInventorySummary();
+  }
+
+  protected get alertItems(): AlertItem[] {
+    const rows = this.inventorySummary?.materiales ?? [];
+    const seen = new Set<string>();
+    return rows
+      .filter((row) => row.diasRestantes <= 90)
+      .map((row) => ({
+        ...row,
+        accionSugerida: this.suggestAction(row.diasRestantes),
+      }))
+      .filter((row) => {
+        const key = `${row.material}|${row.fechaVencimiento ?? ''}|${row.accionSugerida}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .sort((a, b) => a.diasRestantes - b.diasRestantes);
+  }
+
+  protected toggleAlerts(): void {
+    this.alertsOpen = !this.alertsOpen;
+    if (this.alertsOpen && !this.inventorySummary) {
+      this.loadInventorySummary();
+    }
+  }
+
+  private loadInventorySummary(): void {
+    this.service.inventorySummary().subscribe({
+      next: (data) => {
+        this.inventorySummary = data;
+      },
+      error: () => {
+        this.inventorySummary = null;
+      },
+    });
+  }
+
+  private suggestAction(diasRestantes: number): AlertItem['accionSugerida'] {
+    if (diasRestantes <= 30) return 'importar en definitiva';
+    if (diasRestantes <= 60) return 'retornar';
+    return 'exportar';
+  }
 
   protected toggleSidebar(): void {
     this.isSidebarOpen = !this.isSidebarOpen;
