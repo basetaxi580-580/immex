@@ -46,8 +46,8 @@ public class CollectionBootstrap implements ApplicationRunner {
             .append("fraccion", "85369099")));
 
     ensureCollection("lote_material", List.of(
-        lote("Resina ABS natural", "resina", 1200, LocalDate.of(2026, 9, 18), "24 48 3021 9001234"),
-        lote("Conector 12 pines", "electronico", 8000, LocalDate.of(2026, 5, 3), "24 48 3021 9001234")));
+        lote("Resina ABS natural", "resina", 1200, LocalDate.of(2026, 9, 18), "24 48 3021 9001234", new BigDecimal("3.20")),
+        lote("Conector 12 pines", "electronico", 8000, LocalDate.of(2026, 5, 3), "24 48 3021 9001234", new BigDecimal("1.85"))));
     refreshLoteMaterialState();
 
     ensureCollection("bom", List.of(
@@ -121,7 +121,7 @@ public class CollectionBootstrap implements ApplicationRunner {
             .append("fecha", LocalDate.of(2026, 10, 21).toString())));
   }
 
-  private Document lote(String material, String tipoMaterial, int saldo, LocalDate fechaEntrada, String pedimento) {
+  private Document lote(String material, String tipoMaterial, int saldo, LocalDate fechaEntrada, String pedimento, BigDecimal valorUnitarioMxn) {
     int plazoMeses = resolvePlazoMeses(tipoMaterial);
     LocalDate fechaVencimiento = fechaEntrada.plusMonths(plazoMeses);
     long diasRestantes = ChronoUnit.DAYS.between(LocalDate.now(), fechaVencimiento);
@@ -133,7 +133,8 @@ public class CollectionBootstrap implements ApplicationRunner {
         .append("fechaVencimiento", fechaVencimiento.toString())
         .append("diasRestantes", diasRestantes)
         .append("estado", estadoDe(diasRestantes))
-        .append("pedimento", pedimento);
+        .append("pedimento", pedimento)
+        .append("valorUnitarioMxn", valorUnitarioMxn);
   }
 
   private void refreshLoteMaterialState() {
@@ -156,13 +157,17 @@ public class CollectionBootstrap implements ApplicationRunner {
       int plazoMeses = doc.getInteger("plazoMeses", resolvePlazoMeses(tipoMaterial));
       LocalDate fechaVencimiento = fechaEntrada.plusMonths(plazoMeses);
       long diasRestantes = ChronoUnit.DAYS.between(LocalDate.now(), fechaVencimiento);
+      BigDecimal valorUnitarioMxn = moneyValue(doc.get("valorUnitarioMxn")).compareTo(BigDecimal.ZERO) > 0
+          ? moneyValue(doc.get("valorUnitarioMxn"))
+          : defaultValorUnitario(material);
       mongoTemplate.getCollection("lote_material").updateOne(
           new Document("_id", objectId),
           new Document("$set", new Document("tipoMaterial", tipoMaterial)
               .append("plazoMeses", plazoMeses)
               .append("fechaVencimiento", fechaVencimiento.toString())
               .append("diasRestantes", diasRestantes)
-              .append("estado", estadoDe(diasRestantes))));
+              .append("estado", estadoDe(diasRestantes))
+              .append("valorUnitarioMxn", valorUnitarioMxn)));
     });
   }
 

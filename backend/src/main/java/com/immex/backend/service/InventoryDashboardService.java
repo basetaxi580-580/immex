@@ -63,10 +63,31 @@ public class InventoryDashboardService {
   }
 
   private BigDecimal moneyValue(Object value) {
-    if (value == null) return BigDecimal.ZERO;
-    if (value instanceof BigDecimal decimal) return decimal;
-    if (value instanceof Number number) return BigDecimal.valueOf(number.doubleValue());
-    try { return new BigDecimal(value.toString()); } catch (NumberFormatException ex) { return BigDecimal.ZERO; }
+    if (value == null) {
+      return BigDecimal.ZERO;
+    }
+    if (value instanceof BigDecimal decimal) {
+      return decimal;
+    }
+    if (value instanceof Number number) {
+      return BigDecimal.valueOf(number.doubleValue());
+    }
+    try {
+      return new BigDecimal(value.toString());
+    } catch (NumberFormatException ex) {
+      return BigDecimal.ZERO;
+    }
+  }
+
+  private BigDecimal defaultValorUnitario(String material) {
+    String normalized = material == null ? "" : material.toLowerCase();
+    if (normalized.contains("conector")) {
+      return new BigDecimal("1.85");
+    }
+    if (normalized.contains("resina")) {
+      return new BigDecimal("3.20");
+    }
+    return new BigDecimal("1.00");
   }
 
   private LocalDate readDate(Object value) {
