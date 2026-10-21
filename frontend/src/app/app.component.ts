@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { ImmexService } from './immex.service';
-import { DashboardInventorySummary, ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult, ProduccionMensualLine, ProduccionMensualResult } from './models';
+import { DashboardInventorySummary, ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult, ProduccionMensualLine, ProduccionMensualResult, Anexo24Query } from './models';
 
 type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 'risk' | 'peps' | 'production' | 'export' | 'close' | 'audit';
 
@@ -299,8 +299,9 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
               <textarea [(ngModel)]="productionForm.observacion" name="prodObservacion" rows="2" placeholder="Cierre mensual / orden de producción"></textarea>
             </label>
             <div class="actions">
-              <button class="primary" type="submit">Previsualizar consumo</button>
+              <button class="primary" type="button" (click)="previewProduction()">Previsualizar consumo</button>
               <button class="ghost" type="button" (click)="executeProduction()" [disabled]="!productionPreview">Confirmar producción</button>
+              <button class="ghost" type="button" (click)="downloadAnexo24()">Descargar reporte</button>
             </div>
           </form>
 
@@ -560,6 +561,23 @@ export class AppComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.productionError = 'No se pudo previsualizar la producción.';
+      },
+    });
+  }
+
+  downloadAnexo24(): void {
+    const query: Anexo24Query = { razonSocial: '', mes: '' };
+    this.service.downloadAnexo24(query).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = 'anexo24.xlsx';
+        anchor.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => {
+        this.error = 'No se pudo descargar el reporte Anexo 24.';
       },
     });
   }

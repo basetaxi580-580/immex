@@ -82,6 +82,11 @@ export interface DashboardInventorySummary {
   materiales: DashboardMaterialRow[];
 }
 
+export interface Anexo24Query {
+  razonSocial?: string;
+  mes?: string;
+}
+
 export interface ProduccionMensualRequest {
   producto: string;
   cantidadProducida: number;

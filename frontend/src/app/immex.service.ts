@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { CollectionSnapshot, DashboardInventorySummary, ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult, ProduccionMensualRequest, ProduccionMensualResult, AuditEvent } from './models';
+import { CollectionSnapshot, DashboardInventorySummary, ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult, ProduccionMensualRequest, ProduccionMensualResult, AuditEvent, Anexo24Query } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class ImmexService {
@@ -15,6 +15,7 @@ export class ImmexService {
   private readonly collectionsUrl = '/api/admin/collections';
   private readonly importPedimentoUrl = '/api/pedimentos/import';
   private readonly produccionMensualUrl = '/api/produccion/mensual';
+  private readonly anexo24Url = '/api/reportes/anexo24';
 
   list(): Observable<ImmexRecord[]> {
     return this.http.get<ImmexRecord[]>(this.apiUrl);
@@ -64,6 +65,13 @@ export class ImmexService {
 
   productionExecute(payload: ProduccionMensualRequest): Observable<ProduccionMensualResult> {
     return this.http.post<ProduccionMensualResult>(this.produccionMensualUrl, payload);
+  }
+
+  downloadAnexo24(query: Anexo24Query): Observable<Blob> {
+    const params = new URLSearchParams();
+    if (query.razonSocial) params.set('razonSocial', query.razonSocial);
+    if (query.mes) params.set('mes', query.mes);
+    return this.http.get(this.anexo24Url + (params.toString() ? `?${params.toString()}` : ''), { responseType: 'blob' });
   }
 
   create(record: ImmexRecord): Observable<ImmexRecord> {
