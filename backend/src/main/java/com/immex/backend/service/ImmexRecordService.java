@@ -23,10 +23,12 @@ import org.springframework.web.server.ResponseStatusException;
 public class ImmexRecordService {
   private final ImmexRecordRepository repository;
   private final AuditEventService auditEventService;
+  private final LoteMovimientoService loteMovimientoService;
 
-  public ImmexRecordService(ImmexRecordRepository repository, AuditEventService auditEventService) {
+  public ImmexRecordService(ImmexRecordRepository repository, AuditEventService auditEventService, LoteMovimientoService loteMovimientoService) {
     this.repository = repository;
     this.auditEventService = auditEventService;
+    this.loteMovimientoService = loteMovimientoService;
   }
 
   public List<ImmexRecord> findAll() {
@@ -166,47 +168,24 @@ public class ImmexRecordService {
   }
 
   public PepsOperationResult consumePeps(PepsConsumptionRequest request) {
-    List<ImmexRecord> candidates = repository.findAll().stream()
-        .filter(record -> record.isActivo())
-        .filter(record -> record.getMaterial() != null && record.getMaterial().equalsIgnoreCase(request.getMaterial().trim()))
-        .sorted(Comparator.comparing(ImmexRecord::getFechaIngreso, Comparator.nullsLast(Comparator.naturalOrder())))
-        .toList();
-
-    if (candidates.isEmpty()) {
-      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No hay inventario disponible para PEPS");
-    }
-
-    int remaining = request.getQuantity();
-    int processed = 0;
-    for (ImmexRecord record : candidates) {
-      if (remaining <= 0) break;
-      int available = record.getCantidad() == null ? 0 : record.getCantidad();
-      if (available <= 0) continue;
-      int consume = Math.min(available, remaining);
-      record.setCantidad(available - consume);
-      record.setUpdatedAt(Instant.now());
-      if (record.getCantidad() == 0) {
-        record.setStatus("Cerrado");
-        record.setActivo(false);
-      } else {
-        record.setStatus("Conciliación");
-      }
-      repository.save(record);
-      processed += consume;
-      remaining -= consume;
-    }
-
-    boolean completed = remaining == 0;
+    var movimientos = loteMovimientoService.consumirPeps(
+        request.getMaterial().trim(),
+        request.getQuantity(),
+        request.getMaterial().trim(),
+        actorFrom(request.getAuditor()),
+        request.getReason());
+    int processed = movimientos.stream().mapToInt(movimiento -> movimiento.getCantidad() == null ? 0 : movimiento.getCantidad()).sum();
+    boolean completed = processed == request.getQuantity();
     String message = completed
         ? "Consumo PEPS aplicado correctamente"
         : "Consumo parcial: no hubo inventario suficiente para completar la solicitud";
     auditEventService.record(
-        "ImmexRecord",
+        "Descarga",
         request.getMaterial(),
         "PEPS_CONSUME",
         actorFrom(request.getAuditor()),
         request.getReason(),
-        "Solicitado=" + request.getQuantity() + ", procesado=" + processed + ", completado=" + completed);
+        "Solicitado=" + request.getQuantity() + ", procesado=" + processed + ", movimientos=" + movimientos.size());
     return new PepsOperationResult(request.getMaterial(), request.getQuantity(), processed, completed, message, Instant.now());
   }
 
