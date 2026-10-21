@@ -1,5 +1,6 @@
 package com.immex.backend.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -159,7 +160,7 @@ public class CollectionBootstrap implements ApplicationRunner {
       long diasRestantes = ChronoUnit.DAYS.between(LocalDate.now(), fechaVencimiento);
       BigDecimal valorUnitarioMxn = moneyValue(doc.get("valorUnitarioMxn")).compareTo(BigDecimal.ZERO) > 0
           ? moneyValue(doc.get("valorUnitarioMxn"))
-          : defaultValorUnitario(material);
+          : defaultValorUnitario(stringValue(doc.get("material")));
       mongoTemplate.getCollection("lote_material").updateOne(
           new Document("_id", objectId),
           new Document("$set", new Document("tipoMaterial", tipoMaterial)
@@ -198,6 +199,34 @@ public class CollectionBootstrap implements ApplicationRunner {
       return "por vencer";
     }
     return "vigente";
+  }
+
+  private BigDecimal moneyValue(Object value) {
+    if (value == null) {
+      return BigDecimal.ZERO;
+    }
+    if (value instanceof BigDecimal decimal) {
+      return decimal;
+    }
+    if (value instanceof Number number) {
+      return BigDecimal.valueOf(number.doubleValue());
+    }
+    try {
+      return new BigDecimal(value.toString());
+    } catch (NumberFormatException ex) {
+      return BigDecimal.ZERO;
+    }
+  }
+
+  private BigDecimal defaultValorUnitario(String material) {
+    String normalized = material == null ? "" : material.toLowerCase();
+    if (normalized.contains("conector")) {
+      return new BigDecimal("1.85");
+    }
+    if (normalized.contains("resina")) {
+      return new BigDecimal("3.20");
+    }
+    return new BigDecimal("1.00");
   }
 
   private LocalDate readDate(Object value) {
