@@ -3,7 +3,6 @@ package com.immex.backend.model;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import com.immex.backend.model.CloseMonthlyHistoryItem;
 
 public class ImmexCloseReport {
   private final Instant generatedAt;
@@ -16,7 +15,7 @@ public class ImmexCloseReport {
   private final List<String> warnings;
   private final List<ClosePendingItem> pendingItems;
   private final List<String> steps;
-  private final List<CloseMonthlyHistoryItem> history;
+  private final List<String> history;
   private final String estado;
 
   public ImmexCloseReport(
@@ -54,6 +53,6 @@ public class ImmexCloseReport {
   public List<String> getWarnings() { return warnings; }
   public List<ClosePendingItem> getPendingItems() { return pendingItems; }
   public List<String> getSteps() { return steps; }
-  public List<CloseMonthlyHistoryItem> getHistory() { return history; }
+  public List<String> getHistory() { return history; }
   public String getEstado() { return estado; }
 }

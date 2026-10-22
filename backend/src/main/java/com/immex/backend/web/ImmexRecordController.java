@@ -61,7 +61,7 @@ public class ImmexRecordController {
   }
 
   @GetMapping("/close-history")
-  public java.util.List<com.immex.backend.model.CloseMonthlyHistoryItem> closeHistory(@RequestParam(required = false) String razonSocial) {
+  public java.util.List<String> closeHistory(@RequestParam(required = false) String razonSocial) {
     return closeMonthlyService.history(razonSocial);
   }
 

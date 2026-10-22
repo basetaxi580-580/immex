@@ -67,7 +67,6 @@ export interface CloseWorkflowStep {
 }
 
 export interface CloseMonthlyHistoryItem {
-  stepKey: string;
   stepLabel: string;
   actor: string;
   changedAt: string;

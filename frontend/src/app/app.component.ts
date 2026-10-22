@@ -492,10 +492,10 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
             <div class="close-step" *ngFor="let item of closeHistory">
               <div class="close-step-head">
                 <strong>{{ item.stepLabel }}</strong>
-                <span>{{ item.changedAt | date:'dd/MM/yyyy HH:mm' }}</span>
+                <span>{{ item.actor || '—' }}</span>
               </div>
-              <p>{{ item.actor }} · {{ item.field }}</p>
-              <p class="muted">{{ item.oldValue }} → {{ item.newValue }} · {{ item.reason }}</p>
+              <p>{{ item.field }} · {{ item.oldValue }} → {{ item.newValue }}</p>
+              <p class="muted">{{ item.changedAt | date:'dd/MM/yyyy HH:mm' }} · {{ item.reason }}</p>
             </div>
           </div>
           <div class="close-report-box" *ngIf="closeState; else closeReportEmpty">
@@ -953,6 +953,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   simulatePeps(): void {
+    this.pepsError = '';
     this.service.simulatePeps(this.pepsForm).subscribe({
       next: (data) => {
         this.pepsPreview = data;
