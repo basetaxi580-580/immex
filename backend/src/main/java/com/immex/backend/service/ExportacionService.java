@@ -2,7 +2,6 @@ package com.immex.backend.service;
 
 import com.immex.backend.model.ExportacionRequest;
 import com.immex.backend.model.ExportacionResult;
-import com.immex.backend.model.PepsOperationResult;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -17,14 +16,17 @@ public class ExportacionService {
   private final MongoTemplate mongoTemplate;
   private final LoteMovimientoService loteMovimientoService;
   private final AuditEventService auditEventService;
+  private final CloseMonthlyService closeMonthlyService;
 
-  public ExportacionService(MongoTemplate mongoTemplate, LoteMovimientoService loteMovimientoService, AuditEventService auditEventService) {
+  public ExportacionService(MongoTemplate mongoTemplate, LoteMovimientoService loteMovimientoService, AuditEventService auditEventService, CloseMonthlyService closeMonthlyService) {
     this.mongoTemplate = mongoTemplate;
     this.loteMovimientoService = loteMovimientoService;
     this.auditEventService = auditEventService;
+    this.closeMonthlyService = closeMonthlyService;
   }
 
   public ExportacionResult create(ExportacionRequest request) {
+    closeMonthlyService.requireSigned();
     ensureCollections();
     BigDecimal totalDisponible = disponiblePorMaterial(request.getProducto());
     if (totalDisponible.compareTo(BigDecimal.valueOf(request.getCantidad())) < 0) {
@@ -47,7 +49,6 @@ public class ExportacionService {
       long saldo = saldoActual(lote);
       if (saldo <= 0) continue;
       long consume = Math.min(saldo, remaining);
-      long saldoDespues = saldo - consume;
       loteMovimientoService.consumirPeps(
           request.getProducto(),
           (int) consume,
@@ -99,6 +100,6 @@ public class ExportacionService {
   }
 
   private String auditor(String value) {
-    return value == null || value.isBlank() ? "Sistema" : value.trim();
+    return value == null || value.isBlank() ? null : value.trim();
   }
 }

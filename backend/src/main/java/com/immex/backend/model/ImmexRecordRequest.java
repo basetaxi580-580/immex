@@ -21,6 +21,18 @@ public class ImmexRecordRequest {
 
   private String razonSocial;
 
+  @NotBlank
+  private String rfc;
+
+  @NotBlank
+  private String partida;
+
+  @NotBlank
+  private String unidad;
+
+  @NotBlank
+  private String regimenAduanero;
+
   @NotNull
   @Positive
   private Integer cantidad;
@@ -41,7 +53,10 @@ public class ImmexRecordRequest {
   @NotNull
   private Boolean activo;
 
+  @NotBlank(message = "El motivo es obligatorio")
   private String notas;
+
+  @NotBlank(message = "El usuario es obligatorio")
   private String auditor;
 
   public String getPedimento() { return pedimento; }
@@ -54,6 +69,14 @@ public class ImmexRecordRequest {
   public void setMovimiento(String movimiento) { this.movimiento = movimiento; }
   public String getRazonSocial() { return razonSocial; }
   public void setRazonSocial(String razonSocial) { this.razonSocial = razonSocial; }
+  public String getRfc() { return rfc; }
+  public void setRfc(String rfc) { this.rfc = rfc; }
+  public String getPartida() { return partida; }
+  public void setPartida(String partida) { this.partida = partida; }
+  public String getUnidad() { return unidad; }
+  public void setUnidad(String unidad) { this.unidad = unidad; }
+  public String getRegimenAduanero() { return regimenAduanero; }
+  public void setRegimenAduanero(String regimenAduanero) { this.regimenAduanero = regimenAduanero; }
   public Integer getCantidad() { return cantidad; }
   public void setCantidad(Integer cantidad) { this.cantidad = cantidad; }
   public BigDecimal getValorUnitario() { return valorUnitario; }

@@ -1,13 +1,15 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { CollectionSnapshot, DashboardInventorySummary, ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult, ProduccionMensualRequest, ProduccionMensualResult, AuditEvent, Anexo24Query, RazonSocialOption, LoteMaterialView } from './models';
+import { CollectionSnapshot, DashboardInventorySummary, ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult, ProduccionMensualRequest, ProduccionMensualResult, AuditEvent, Anexo24Query, RazonSocialOption, LoteMaterialView, CloseMonthlyStateResponse, CloseMonthlyStatus, CloseMonthlyHistoryItem, ComplianceAssistantResponse } from './models';
 import { CompanyFilterService } from './company-filter.service';
+import { UserRoleService } from './user-role.service';
 
 @Injectable({ providedIn: 'root' })
 export class ImmexService {
   private readonly http = inject(HttpClient);
   private readonly companyFilter = inject(CompanyFilterService);
+  private readonly roleService = inject(UserRoleService);
   private readonly apiUrl = '/api/records';
   private readonly dashboardUrl = '/api/records/summary';
   private readonly inventoryDashboardUrl = '/api/dashboard/inventory';
@@ -20,6 +22,7 @@ export class ImmexService {
   private readonly produccionMensualUrl = '/api/produccion/mensual';
   private readonly anexo24Url = '/api/reportes/anexo24';
   private readonly razonesSocialesUrl = '/api/razones-sociales';
+  private readonly assistantUrl = '/api/records/assistant';
 
   list(): Observable<ImmexRecord[]> {
     return this.http.get<ImmexRecord[]>(this.withCompany(this.apiUrl));
@@ -88,7 +91,8 @@ export class ImmexService {
     numeroPedimento: string;
     fecha: string;
     razonSocial: string;
-    partidas: Array<{ material: string; cantidad: number; valorUnitarioMxn: number }>;
+    rfc: string;
+    partidas: Array<{ partida: string; material: string; unidad: string; regimenAduanero: string; cantidad: number; valorUnitarioMxn: number }>;
   }): Observable<any> {
     return this.http.post<any>(this.importPedimentoUrl, payload);
   }
@@ -101,6 +105,22 @@ export class ImmexService {
     return this.http.post<ProduccionMensualResult>(this.produccionMensualUrl, payload);
   }
 
+  closeStatus(): Observable<CloseMonthlyStateResponse> {
+    return this.http.get<CloseMonthlyStateResponse>(this.withCompany(`${this.apiUrl}/close-status?role=${encodeURIComponent(this.getRole())}`));
+  }
+
+  closeHistory(): Observable<CloseMonthlyHistoryItem[]> {
+    return this.http.get<CloseMonthlyHistoryItem[]>(this.withCompany(`${this.apiUrl}/close-history`));
+  }
+
+  closeStep(payload: { stepKey: string; actor: string; reason: string; detail?: string }): Observable<CloseMonthlyStatus> {
+    return this.http.post<CloseMonthlyStatus>(this.withCompany(`${this.apiUrl}/close-step`), payload);
+  }
+
+  signClose(payload: { actor: string }): Observable<CloseMonthlyStatus> {
+    return this.http.post<CloseMonthlyStatus>(this.withCompany(`${this.apiUrl}/close-sign?role=${encodeURIComponent(this.getRole())}`), payload);
+  }
+
   downloadAnexo24(query: Anexo24Query): Observable<Blob> {
     const params = new URLSearchParams();
     const global = this.companyFilter.selectedRazonSocial;
@@ -108,6 +128,14 @@ export class ImmexService {
     if (razonSocial) params.set('razonSocial', razonSocial);
     if (query.mes) params.set('mes', query.mes);
     return this.http.get(this.anexo24Url + (params.toString() ? `?${params.toString()}` : ''), { responseType: 'blob' });
+  }
+
+  complianceAssistant(): Observable<ComplianceAssistantResponse> {
+    const params = new URLSearchParams();
+    const global = this.companyFilter.selectedRazonSocial;
+    if (global && global !== 'all') params.set('razonSocial', global);
+    const query = params.toString();
+    return this.http.get<ComplianceAssistantResponse>(this.assistantUrl + (query ? `?${query}` : ''));
   }
 
   create(record: ImmexRecord): Observable<ImmexRecord> {
@@ -128,6 +156,10 @@ export class ImmexService {
 
   getCompanyFilter(): string {
     return this.companyFilter.selectedRazonSocial;
+  }
+
+  getRole(): string {
+    return this.roleService.selectedRole;
   }
 
   private withCompany(url: string): string {

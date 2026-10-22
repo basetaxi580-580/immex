@@ -7,18 +7,21 @@ import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 
 public class ProduccionMensualRequest {
-  @NotBlank
+  @NotBlank(message = "El producto es obligatorio")
   private String producto;
 
   @NotNull
-  @Positive
+  @Positive(message = "La cantidad producida debe ser mayor a cero")
   private Integer cantidadProducida;
 
   @NotNull
-  @DecimalMin(value = "0.0", inclusive = true)
+  @DecimalMin(value = "0.0", inclusive = true, message = "La merma no puede ser negativa")
   private BigDecimal mermaPct;
 
+  @NotBlank(message = "El usuario es obligatorio")
   private String auditor;
+
+  @NotBlank(message = "El motivo es obligatorio")
   private String observacion;
 
   public String getProducto() { return producto; }

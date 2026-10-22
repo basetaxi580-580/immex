@@ -1,6 +1,7 @@
 package com.immex.backend.service;
 
 import com.immex.backend.model.AuditEvent;
+import com.immex.backend.model.DashboardInventorySummary;
 import com.immex.backend.model.ImmexCloseReport;
 import com.immex.backend.model.ImmexDashboardSummary;
 import com.immex.backend.model.ImmexRecord;
@@ -24,11 +25,13 @@ public class ImmexRecordService {
   private final ImmexRecordRepository repository;
   private final AuditEventService auditEventService;
   private final LoteMovimientoService loteMovimientoService;
+  private final InventoryDashboardService inventoryDashboardService;
 
-  public ImmexRecordService(ImmexRecordRepository repository, AuditEventService auditEventService, LoteMovimientoService loteMovimientoService) {
+  public ImmexRecordService(ImmexRecordRepository repository, AuditEventService auditEventService, LoteMovimientoService loteMovimientoService, InventoryDashboardService inventoryDashboardService) {
     this.repository = repository;
     this.auditEventService = auditEventService;
     this.loteMovimientoService = loteMovimientoService;
+    this.inventoryDashboardService = inventoryDashboardService;
   }
 
   public List<ImmexRecord> findAll(String razonSocial) {
@@ -43,6 +46,9 @@ public class ImmexRecordService {
   }
 
   public ImmexRecord create(ImmexRecordRequest request) {
+    validateDuplicate(request, null);
+    validateAuditorAndNotes(request.getAuditor(), request.getNotas());
+    validateNonNegativeQuantity(request.getCantidad());
     Instant now = Instant.now();
     ImmexRecord record = new ImmexRecord(
         UUID.randomUUID().toString(),
@@ -51,6 +57,10 @@ public class ImmexRecordService {
         request.getProveedor().trim(),
         request.getMovimiento().trim(),
         trimToNull(request.getRazonSocial()),
+        trimToNull(request.getRfc()),
+        trimToNull(request.getPartida()),
+        trimToNull(request.getUnidad()),
+        trimToNull(request.getRegimenAduanero()),
         request.getCantidad(),
         request.getValorUnitario(),
         request.getFechaIngreso(),
@@ -73,12 +83,19 @@ public class ImmexRecordService {
   }
 
   public ImmexRecord update(String id, ImmexRecordRequest request) {
+    validateDuplicate(request, id);
+    validateAuditorAndNotes(request.getAuditor(), request.getNotas());
+    validateNonNegativeQuantity(request.getCantidad());
     ImmexRecord existing = findById(id);
     existing.setPedimento(request.getPedimento().trim());
     existing.setMaterial(request.getMaterial().trim());
     existing.setProveedor(request.getProveedor().trim());
     existing.setMovimiento(request.getMovimiento().trim());
     existing.setRazonSocial(trimToNull(request.getRazonSocial()));
+    existing.setRfc(trimToNull(request.getRfc()));
+    existing.setPartida(trimToNull(request.getPartida()));
+    existing.setUnidad(trimToNull(request.getUnidad()));
+    existing.setRegimenAduanero(trimToNull(request.getRegimenAduanero()));
     existing.setCantidad(request.getCantidad());
     existing.setValorUnitario(request.getValorUnitario());
     existing.setFechaIngreso(request.getFechaIngreso());
@@ -130,6 +147,9 @@ public class ImmexRecordService {
     long closeReadyCount = 0L;
 
     for (ImmexRecord record : records) {
+      if (!isRiskRelevant(record)) {
+        continue;
+      }
       long risk = lineRisk(record).longValue();
       riskTotal += risk;
       long days = daysLeft(record);
@@ -150,7 +170,9 @@ public class ImmexRecordService {
     List<ImmexRecord> records = findAll(razonSocial);
     long openRecords = records.stream().filter(record -> record.isActivo() && !"Cerrado".equalsIgnoreCase(record.getStatus())).count();
     long expiringSoonCount = records.stream().filter(record -> daysLeft(record) <= 30).count();
-    long riskTotal = records.stream().map(this::lineRisk).mapToLong(BigDecimal::longValue).sum();
+    DashboardInventorySummary inventorySummary = inventoryDashboardService.inventory(razonSocial);
+    BigDecimal saldoTotal = inventorySummary == null ? BigDecimal.ZERO : inventorySummary.saldoTotalMxn();
+    BigDecimal montoEnRiesgo = inventorySummary == null ? BigDecimal.ZERO : inventorySummary.montoVencidoMxn().add(inventorySummary.montoPorVencerMxn());
     ImmexRecord pepsCandidate = records.stream()
         .filter(record -> record.isActivo())
         .sorted(Comparator.comparing(ImmexRecord::getFechaIngreso, Comparator.nullsLast(Comparator.naturalOrder())))
@@ -168,10 +190,25 @@ public class ImmexRecordService {
       warnings.add("No hay candidato PEPS disponible.");
     }
 
-    return new ImmexCloseReport(Instant.now(), records.size(), openRecords, expiringSoonCount, riskTotal, pepsCandidate, warnings);
+    long exceptionsPending = records.stream().filter(this::isRiskRelevant).count();
+    List<com.immex.backend.model.ClosePendingItem> pendingItems = new java.util.ArrayList<>();
+    pendingItems.add(new com.immex.backend.model.ClosePendingItem("movimientos-abiertos", "Movimientos abiertos", openRecords, "/dashboard/ledger"));
+    pendingItems.add(new com.immex.backend.model.ClosePendingItem("excepciones-sin-resolver", "Excepciones sin resolver", exceptionsPending, "/dashboard/risk"));
+
+    String estado;
+    if (openRecords == 0 && exceptionsPending == 0) {
+      estado = "Firmado";
+    } else if (openRecords > 0 || exceptionsPending > 0) {
+      estado = warnings.isEmpty() ? "En revisión" : "Abierto";
+    } else {
+      estado = "Abierto";
+    }
+
+    return new ImmexCloseReport(Instant.now(), records.size(), openRecords, expiringSoonCount, saldoTotal, montoEnRiesgo, pepsCandidate, warnings, pendingItems, estado);
   }
 
   public PepsOperationResult simulatePeps(PepsConsumptionRequest request) {
+    validateReasonAndAuditor(request.getReason(), request.getAuditor());
     var movimientos = loteMovimientoService.simularPeps(
         request.getMaterial().trim(),
         request.getQuantity(),
@@ -183,10 +220,18 @@ public class ImmexRecordService {
     String message = completed
         ? "Simulación lista: no se guardó nada"
         : "Simulación parcial: no habría inventario suficiente para completar la solicitud";
+    auditEventService.record(
+        "Descarga",
+        request.getMaterial(),
+        "PEPS_SIMULATE",
+        actorFrom(request.getAuditor()),
+        request.getReason(),
+        "Solicitado=" + request.getQuantity() + ", simulado=" + processed + ", movimientos=" + movimientos.size());
     return new PepsOperationResult(request.getMaterial(), request.getQuantity(), processed, completed, message, Instant.now(), movimientos);
   }
 
   public PepsOperationResult applyPeps(PepsConsumptionRequest request) {
+    validateReasonAndAuditor(request.getReason(), request.getAuditor());
     var movimientos = loteMovimientoService.consumirPeps(
         request.getMaterial().trim(),
         request.getQuantity(),
@@ -213,15 +258,26 @@ public class ImmexRecordService {
   }
 
   public PepsOperationResult revertPeps(PepsConsumptionRequest request) {
+    validateReasonAndAuditor(request.getReason(), request.getAuditor());
+    var movimientos = loteMovimientoService.revertirPeps(
+        request.getMaterial().trim(),
+        request.getQuantity(),
+        request.getMaterial().trim(),
+        actorFrom(request.getAuditor()),
+        request.getReason());
+    int processed = movimientos.stream().mapToInt(movimiento -> movimiento.getCantidad() == null ? 0 : movimiento.getCantidad()).sum();
+    boolean completed = processed == request.getQuantity();
+    String message = completed
+        ? "PEPS revertido correctamente"
+        : "Reversión parcial: no se pudo devolver todo el saldo solicitado";
     auditEventService.record(
         "Descarga",
         request.getMaterial(),
         "PEPS_REVERT",
         actorFrom(request.getAuditor()),
         request.getReason(),
-        "Simulación descartada sin cambios en inventario");
-    int quantity = request.getQuantity() == null ? 0 : request.getQuantity();
-    return new PepsOperationResult(request.getMaterial(), quantity, 0, true, "Simulación revertida; no se guardaron cambios", Instant.now(), java.util.List.of());
+        "Solicitado=" + request.getQuantity() + ", revertido=" + processed + ", movimientos=" + movimientos.size());
+    return new PepsOperationResult(request.getMaterial(), request.getQuantity(), processed, completed, message, Instant.now(), movimientos);
   }
 
   public List<AuditEvent> listAuditEvents() {
@@ -229,7 +285,7 @@ public class ImmexRecordService {
   }
 
   private BigDecimal lineRisk(ImmexRecord record) {
-    if (record.getCantidad() == null || record.getValorUnitario() == null) {
+    if (!isRiskRelevant(record) || record.getCantidad() == null || record.getValorUnitario() == null) {
       return BigDecimal.ZERO;
     }
     return record.getValorUnitario().multiply(BigDecimal.valueOf(record.getCantidad()));
@@ -242,6 +298,16 @@ public class ImmexRecordService {
     return ChronoUnit.DAYS.between(LocalDate.now(), record.getFechaVencimiento());
   }
 
+  private boolean isRiskRelevant(ImmexRecord record) {
+    if (record == null) return false;
+    String status = trimToNull(record.getStatus());
+    String movimiento = trimToNull(record.getMovimiento());
+    if (status != null && "Cerrado".equalsIgnoreCase(status)) return false;
+    if (movimiento != null && "Exportación".equalsIgnoreCase(movimiento)) return false;
+    if (!record.isActivo()) return false;
+    return true;
+  }
+
   private boolean matchesCompany(ImmexRecord record, String razonSocial) {
     if (razonSocial == null || razonSocial.isBlank() || "all".equalsIgnoreCase(razonSocial)) {
       return true;
@@ -250,14 +316,55 @@ public class ImmexRecordService {
     return recordCompany != null && recordCompany.equalsIgnoreCase(razonSocial.trim());
   }
 
+  private void validateDuplicate(ImmexRecordRequest request, String currentId) {
+    String pedimento = request.getPedimento().trim();
+    String material = request.getMaterial().trim();
+    String partida = trimToNull(request.getPartida());
+    String rfc = trimToNull(request.getRfc());
+    boolean duplicate = repository.findAll().stream().anyMatch(record ->
+        (currentId == null || !currentId.equals(record.getId()))
+            && pedimento.equalsIgnoreCase(record.getPedimento())
+            && material.equalsIgnoreCase(record.getMaterial())
+            && equalsIgnoreCase(partida, record.getPartida())
+            && equalsIgnoreCase(rfc, record.getRfc()));
+    if (duplicate) {
+      throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe un registro para ese pedimento, partida y material");
+    }
+  }
+
+  private void validateNonNegativeQuantity(Integer quantity) {
+    if (quantity == null || quantity <= 0) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La cantidad debe ser mayor a cero");
+    }
+  }
+
+  private void validateAuditorAndNotes(String auditor, String notas) {
+    if (auditor == null || auditor.isBlank()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El usuario es obligatorio");
+    }
+    if (notas == null || notas.isBlank()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El motivo es obligatorio");
+    }
+  }
+
+  private void validateReasonAndAuditor(String reason, String auditor) {
+    validateAuditorAndNotes(auditor, reason);
+  }
+
   private String trimToNull(String value) {
     if (value == null) return null;
     String trimmed = value.trim();
     return trimmed.isEmpty() ? null : trimmed;
   }
 
-  private String actorFrom(String auditor) {
-    String value = trimToNull(auditor);
-    return value == null ? "Sistema" : value;
+  private boolean equalsIgnoreCase(String a, String b) {
+    if (a == null && b == null) return true;
+    if (a == null || b == null) return false;
+    return a.equalsIgnoreCase(b);
+  }
+
+  private String actorFrom(String value) {
+    String trimmed = trimToNull(value);
+    return trimmed == null ? "Sistema" : trimmed;
   }
 }

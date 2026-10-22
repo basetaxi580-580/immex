@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { ImmexService } from './immex.service';
-import { DashboardInventorySummary, ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult, ProduccionMensualLine, ProduccionMensualResult, Anexo24Query, RazonSocialOption, LoteMaterialView } from './models';
+import { DashboardInventorySummary, ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult, ProduccionMensualLine, ProduccionMensualResult, Anexo24Query, RazonSocialOption, LoteMaterialView, CloseMonthlyStateResponse, CloseMonthlyHistoryItem, CloseMonthlyStatus } from './models';
 
 type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 'risk' | 'peps' | 'production' | 'export' | 'close' | 'audit';
 
@@ -14,7 +15,10 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
   imports: [CommonModule, FormsModule],
   template: `
     <main class="shell">
-      <p class="error" *ngIf="error" role="alert">{{ error }}</p>
+      <section class="alert-banner" *ngIf="error" role="alert" aria-live="assertive">
+        <strong>Atención</strong>
+        <p>{{ error }}</p>
+      </section>
       <ng-container [ngSwitch]="activeView">
         <section *ngSwitchCase="'dashboard'" class="dashboard-panel">
           <header class="card hero-summary" id="dashboard">
@@ -25,9 +29,12 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
             </div>
             <div class="summary-inline">
               <div><span>Saldo total</span><strong>{{ inventorySaldoTotal | currency:'MXN':'symbol':'1.0-0' }}</strong></div>
+              <div><span>Monto en riesgo</span><strong>{{ inventoryMontoEnRiesgo | currency:'MXN':'symbol':'1.0-0' }}</strong></div>
+              <div><span>Importaciones</span><strong>{{ entryCount }}</strong></div>
+              <div><span>Exportaciones</span><strong>{{ exportCount }}</strong></div>
               <div><span>Por vencer 90 días</span><strong>{{ inventoryMontoPorVencer | currency:'MXN':'symbol':'1.0-0' }}</strong></div>
               <div><span>Vencido</span><strong>{{ inventoryMontoVencido | currency:'MXN':'symbol':'1.0-0' }}</strong></div>
-              <div><span>Conector 12p</span><strong>{{ conector12DisplayDays }}</strong><small>{{ conector12DisplayDate }}</small></div>
+              <div><span>Cierre mensual</span><strong>{{ signedCloseStatus }}</strong><small>{{ closeSignedAt }}</small></div>
             </div>
           </header>
 
@@ -41,28 +48,66 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
                 <thead>
                   <tr>
                     <th>Material</th>
-                    <th>Saldo</th>
-                    <th>Fecha vencimiento</th>
-                    <th>Monto en riesgo</th>
-                    <th>Urgencia</th>
+                    <th>Pedimento</th>
+                    <th>RFC</th>
+                    <th>Saldo pendiente</th>
+                    <th>Fecha límite</th>
+                    <th>Días</th>
+                    <th>Valor mercancía</th>
+                    <th>Exposición MXN</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let row of inventoryRows">
+                  <tr *ngFor="let row of taxExposureRows">
                     <td><strong>{{ row.material }}</strong></td>
-                    <td>{{ row.saldo }}</td>
-                    <td>{{ row.fechaVencimiento ? formatDate(row.fechaVencimiento) : '—' }}</td>
-                    <td>{{ row.montoEnRiesgo | currency:'MXN':'symbol':'1.0-0' }}</td>
+                    <td>{{ row.pedimento }}</td>
+                    <td>{{ row.rfc }}</td>
+                    <td>{{ row.saldoAduaneroPendiente }}</td>
+                    <td>{{ row.fechaLimite }}</td>
                     <td><span class="badge" [class.warning]="row.diasRestantes <= 90" [class.danger]="row.estado === 'vencido'">{{ row.estado }} · {{ row.diasRestantes }} días</span></td>
+                    <td>{{ row.valorMercancia }}</td>
+                    <td>{{ row.impuestosPotenciales }}</td>
                   </tr>
-                  <tr *ngIf="!inventoryRows.length">
-                    <td colspan="5" class="empty">No hay materiales con saldo disponible.</td>
+                  <tr *ngIf="!taxExposureRows.length">
+                    <td colspan="8" class="empty">No hay materiales con saldo disponible.</td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </section>
 
+          <section class="card module-card" id="exposicion-section">
+            <div class="card-head">
+              <h2>Exposición económica</h2>
+              <span>Valor mercancía y saldos</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Material</th>
+                    <th>Pedimento</th>
+                    <th>RFC</th>
+                    <th>Saldo aduanero</th>
+                    <th>Valor mercancía</th>
+                    <th>Impuestos potenciales</th>
+                    <th>Fecha límite</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of taxExposureRows">
+                    <td>{{ row.material }}</td>
+                    <td>{{ row.pedimento }}</td>
+                    <td>{{ row.rfc }}</td>
+                    <td>{{ row.saldoAduaneroPendiente }}</td>
+                    <td>{{ row.valorMercancia }}</td>
+                    <td>{{ row.impuestosPotenciales }}</td>
+                    <td>{{ row.fechaLimite }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
           <section class="card module-card" id="anexo24-section">
             <div class="card-head">
               <h2>Anexo 24</h2>
@@ -114,7 +159,7 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
             </label>
             <label>
               <span>Auditor / responsable</span>
-              <input [(ngModel)]="form.auditor" name="auditor" placeholder="Especialista aduanal" />
+              <input [(ngModel)]="form.auditor" name="auditor" placeholder="Especialista aduanal" required />
             </label>
             <label>
               <span>Movimiento</span>
@@ -132,7 +177,7 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
               </label>
               <label>
                 <span>Valor unitario</span>
-                <input [(ngModel)]="form.valorUnitario" name="valorUnitario" type="number" step="0.01" min="0" required />
+                <input [(ngModel)]="form.valorUnitario" name="valorUnitario" type="number" step="0.01" min="0.01" placeholder="1.00" required />
               </label>
             </div>
             <div class="two-cols">
@@ -160,7 +205,7 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
             </label>
             <label>
               <span>Notas</span>
-              <textarea [(ngModel)]="form.notas" name="notas" rows="3" placeholder="Observaciones de conciliación"></textarea>
+              <textarea [(ngModel)]="form.notas" name="notas" rows="3" placeholder="Observaciones de conciliación" required></textarea>
             </label>
             <div class="actions">
               <button class="primary" type="submit">{{ editingId ? 'Actualizar' : 'Guardar' }}</button>
@@ -286,17 +331,17 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
               </label>
               <label>
                 <span>Responsable</span>
-                <input [(ngModel)]="pepsForm.auditor" name="pepsAuditor" placeholder="Especialista" />
+                <input [(ngModel)]="pepsForm.auditor" name="pepsAuditor" placeholder="Especialista" required />
               </label>
             </div>
             <label>
               <span>Motivo</span>
-              <textarea [(ngModel)]="pepsForm.reason" name="pepsReason" rows="2" placeholder="Salida para producción"></textarea>
+              <textarea [(ngModel)]="pepsForm.reason" name="pepsReason" rows="2" placeholder="Salida para producción" required></textarea>
             </label>
             <div class="actions">
-              <button class="primary" type="submit">Simular PEPS</button>
+              <button class="primary" type="submit">Simular</button>
               <button class="ghost" type="button" (click)="applyPeps()" [disabled]="!pepsPreview">Aplicar</button>
-              <button class="ghost" type="button" (click)="revertPeps()" [disabled]="!pepsPreview">Revertir</button>
+              <button class="ghost" type="button" (click)="revertPeps()" [disabled]="!pepsApplied">Revertir</button>
             </div>
           </form>
           <div class="close-report-box" *ngIf="pepsPreview; else pepsEmpty">
@@ -335,6 +380,7 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
           <ng-template #pepsEmpty>
             <p class="muted">Simula una descarga para revisar cómo quedarían los saldos antes de aplicar.</p>
           </ng-template>
+          <p class="error" *ngIf="pepsError" role="alert">{{ pepsError }}</p>
           <p class="success" *ngIf="pepsResult">{{ pepsResult.message }}</p>
         </section>
 
@@ -365,12 +411,12 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
               </label>
               <label>
                 <span>Responsable</span>
-                <input [(ngModel)]="productionForm.auditor" name="prodAuditor" placeholder="Supervisor" />
+                <input [(ngModel)]="productionForm.auditor" name="prodAuditor" placeholder="Supervisor" required />
               </label>
             </div>
             <label>
               <span>Observación</span>
-              <textarea [(ngModel)]="productionForm.observacion" name="prodObservacion" rows="2" placeholder="Cierre mensual / orden de producción"></textarea>
+              <textarea [(ngModel)]="productionForm.observacion" name="prodObservacion" rows="2" placeholder="Cierre mensual / orden de producción" required></textarea>
             </label>
             <div class="actions">
               <button class="primary" type="button" (click)="previewProduction()">Previsualizar consumo</button>
@@ -385,24 +431,25 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
             <p><strong>Merma:</strong> {{ productionPreview.mermaPct }}%</p>
             <p><strong>Movimientos:</strong> {{ productionPreview.movimientosDescarga }}</p>
             <p><strong>Estado:</strong> {{ productionPreview.completado ? 'Listo' : 'Pendiente' }}</p>
+            <p class="error" *ngIf="!productionPreview.completado" role="alert">Falta saldo para completar la producción; no se descontará nada hasta confirmar.</p>
             <div class="table-wrap">
               <table>
                 <thead>
                   <tr>
                     <th>Material</th>
-                    <th>Requerido</th>
-                    <th>Descargado</th>
+                    <th>Cantidad por BOM</th>
+                    <th>Merma incluida</th>
+                    <th>Lote de origen (PEPS)</th>
                     <th>Saldo pendiente</th>
-                    <th>Lotes</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr *ngFor="let line of productionPreview.lineas">
                     <td>{{ line.material }}</td>
-                    <td>{{ line.requerido }}</td>
-                    <td>{{ line.descargado }}</td>
-                    <td>{{ line.saldoPendiente }}</td>
+                    <td>{{ line.cantidadBom }}</td>
+                    <td>{{ line.mermaIncluida }}</td>
                     <td>{{ line.lotesAfectados.join(', ') || '-' }}</td>
+                    <td [class.danger-text]="line.saldoPendiente > 0">{{ line.saldoPendiente }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -412,8 +459,8 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
             <p class="muted">Previsualiza la producción para ver el consumo antes de confirmar.</p>
           </ng-template>
 
+          <p class="error" *ngIf="productionError" role="alert">{{ productionError }}</p>
           <p class="success" *ngIf="productionResult">{{ productionResult.message }}</p>
-          <p class="error" *ngIf="productionError">{{ productionError }}</p>
         </section>
 
         <section *ngSwitchCase="'close'" class="card module-card" id="close-section">
@@ -421,20 +468,58 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
             <h2>Cierre mensual</h2>
             <span>Reporte listo</span>
           </div>
-          <div class="close-report-box" *ngIf="closeReport; else closeReportEmpty">
-            <p><strong>Total:</strong> {{ closeReport.totalRecords }}</p>
-            <p><strong>Abiertos:</strong> {{ closeReport.openRecords }}</p>
-            <p><strong>Por vencer:</strong> {{ closeReport.expiringSoonCount }}</p>
-            <p><strong>Riesgo:</strong> {{ closeReport.riskTotal | currency:'MXN':'symbol':'1.0-0' }}</p>
-            <p *ngIf="closeReport.pepsCandidate"><strong>PEPS:</strong> {{ closeReport.pepsCandidate.material }}</p>
-            <div class="warning-list" *ngIf="closeReport.warnings.length">
-              <span class="warning-chip" *ngFor="let warning of closeReport.warnings">{{ warning }}</span>
+          <div class="close-step-list" *ngIf="closeState?.status?.steps?.length">
+            <div class="close-step" *ngFor="let step of closeState.status.steps">
+              <div class="close-step-head">
+                <strong>{{ step.label }}</strong>
+                <span class="badge" [class.warning]="step.estado !== 'Completada'">{{ step.estado }}</span>
+              </div>
+              <p>{{ step.responsable }}</p>
+              <p class="muted">{{ step.pendiente }}</p>
+            </div>
+          </div>
+          <div class="close-step-list" *ngIf="closeState?.status?.history?.length">
+            <div class="close-step" *ngFor="let item of closeState.status.history">
+              <div class="close-step-head">
+                <strong>{{ item.stepLabel }}</strong>
+                <span>{{ item.changedAt | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+              <p>{{ item.actor }} · {{ item.field }}</p>
+              <p class="muted">{{ item.oldValue }} → {{ item.newValue }} · {{ item.reason }}</p>
+            </div>
+          </div>
+          <div class="close-step-list" *ngIf="closeHistory.length && !closeState?.status?.history?.length">
+            <div class="close-step" *ngFor="let item of closeHistory">
+              <div class="close-step-head">
+                <strong>{{ item.periodo }}</strong>
+                <span>{{ item.firmado ? 'Firmado' : 'Abierto' }}</span>
+              </div>
+              <p>Avance {{ item.progressPct }}% · Pendientes {{ item.pendingCount }}</p>
+            </div>
+          </div>
+          <div class="close-report-box" *ngIf="closeState; else closeReportEmpty">
+            <p><strong>Avance:</strong> {{ closeState.status.progressPct }}%</p>
+            <p><strong>Estado:</strong> {{ closeState.status.firmado ? 'Firmado' : (closeState.status.canClose ? 'Listo para aprobar' : 'En proceso') }}</p>
+            <p><strong>Periodo:</strong> {{ closeState.status.periodo }}</p>
+            <p><strong>Responsable actual:</strong> {{ closeState.status.currentResponsible }}</p>
+            <p *ngIf="closeState.status.firmado"><strong>Firmado por:</strong> {{ closeState.status.firmadoPor || '—' }}</p>
+            <p *ngIf="closeState.status.firmadoAt"><strong>Firma:</strong> {{ closeState.status.firmadoAt | date:'dd/MM/yyyy HH:mm' }}</p>
+            <p><strong>Pendientes:</strong> {{ closeState.status.pendingCount }}</p>
+            <p><strong>Errores críticos:</strong> {{ closeState.status.hasCriticalErrors ? 'Sí' : 'No' }}</p>
+            <p><strong>Saldo total:</strong> {{ closeReport?.saldoTotalMxn | currency:'MXN':'symbol':'1.0-0' }}</p>
+            <p><strong>Monto en riesgo:</strong> {{ closeReport?.montoEnRiesgoMxn | currency:'MXN':'symbol':'1.0-0' }}</p>
+            <p><strong>Abiertos:</strong> {{ closeReport?.openRecords ?? 0 }}</p>
+            <p><strong>Por vencer:</strong> {{ closeReport?.expiringSoonCount ?? 0 }}</p>
+            <p *ngIf="closeReport?.pepsCandidate"><strong>PEPS:</strong> {{ closeReport?.pepsCandidate?.material }}</p>
+            <div class="actions">
+              <button class="primary" type="button" *ngIf="closeState.canSign" (click)="signClose()">Firmar cierre</button>
+              <button class="ghost" type="button" (click)="downloadAnexo24()" [disabled]="!closeState.canDownloadAnexo24">Descargar reporte Anexo 24</button>
             </div>
           </div>
           <ng-template #closeReportEmpty>
             <p class="muted">Sin reporte aún.</p>
           </ng-template>
-          <button class="ghost" type="button" (click)="refreshCloseReport()">Actualizar cierre</button>
+          <button class="ghost" type="button" (click)="refreshCloseState()">Actualizar cierre</button>
         </section>
 
         <section *ngSwitchCase="'audit'" class="card audit-card" id="audit-section">
@@ -442,10 +527,48 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
             <h2>Trazabilidad</h2>
             <span>quién, cuándo y por qué</span>
           </div>
+          <div class="assistant-box" *ngIf="assistantData; else assistantLoading">
+            <p class="eyebrow">Asistente inteligente de cumplimiento</p>
+            <h3>{{ assistantData.summary }}</h3>
+            <p class="muted">Ámbito: {{ assistantData.scope }}</p>
+            <div class="assistant-list" *ngIf="assistantData.recommendations.length; else noAssistantItems">
+              <article class="assistant-item" *ngFor="let item of assistantData.recommendations">
+                <strong>{{ item.problem }}</strong>
+                <p><b>Causa:</b> {{ item.cause }}</p>
+                <p><b>Impacto:</b> {{ item.impact }}</p>
+                <p><b>Acción sugerida:</b> {{ item.suggestedAction }}</p>
+                <p><b>Evidencia:</b> {{ item.evidence }}</p>
+                <small>{{ item.factBased ? 'Hecho real' : 'Estimación' }}</small>
+              </article>
+            </div>
+            <ng-template #noAssistantItems>
+              <p class="muted">No se detectaron recomendaciones.</p>
+            </ng-template>
+            <div class="assistant-list" *ngIf="assistantData.facts.length">
+              <article class="assistant-item">
+                <strong>Hechos observados</strong>
+                <ul>
+                  <li *ngFor="let fact of assistantData.facts">{{ fact }}</li>
+                </ul>
+              </article>
+            </div>
+            <div class="assistant-list" *ngIf="assistantData.limitations.length">
+              <article class="assistant-item">
+                <strong>Limitaciones</strong>
+                <ul>
+                  <li *ngFor="let limitation of assistantData.limitations">{{ limitation }}</li>
+                </ul>
+              </article>
+            </div>
+          </div>
+          <ng-template #assistantLoading>
+            <p class="muted">Cargando asistente de cumplimiento…</p>
+          </ng-template>
+          <button class="ghost" type="button" (click)="refreshAssistant()">Actualizar asistente</button>
           <div class="audit-list" *ngIf="auditEvents.length; else auditEmpty">
             <div class="audit-item" *ngFor="let event of auditEvents">
               <strong>{{ event.action }} · {{ event.entityType }}</strong>
-              <span>{{ event.actor }} · {{ event.reason || 'Sin motivo' }} · {{ event.createdAt | date:'short' }}</span>
+                <span>{{ event.actor || '—' }} · {{ event.reason || 'Motivo no informado' }} · {{ event.createdAt ? (event.createdAt | date:'dd/MM/yyyy HH:mm') : '—' }}</span>
               <p>{{ event.details }}</p>
             </div>
           </div>
@@ -471,12 +594,17 @@ export class AppComponent implements OnInit, OnDestroy {
   summary: ImmexDashboardSummary | null = null;
   inventorySummary: DashboardInventorySummary | null = null;
   closeReport: ImmexCloseReport | null = null;
+  closeState: CloseMonthlyStateResponse | null = null;
+  closeHistory: CloseMonthlyHistoryItem[] = [];
+  assistantData: { scope: string; summary: string; recommendations: { problem: string; cause: string; impact: string; suggestedAction: string; evidence: string; factBased: boolean }[]; facts: string[]; limitations: string[] } | null = null;
   pepsPreview: PepsOperationResult | null = null;
   pepsResult: PepsOperationResult | null = null;
   auditEvents: any[] = [];
   productionPreview: ProduccionMensualResult | null = null;
   productionResult: ProduccionMensualResult | null = null;
   productionError = '';
+  pepsError = '';
+  pepsApplied = false;
   editingId: string | null = null;
   connected = true;
   error = '';
@@ -518,6 +646,8 @@ export class AppComponent implements OnInit, OnDestroy {
     this.load();
     this.loadInventorySummary();
     this.refreshCloseReport();
+    this.refreshCloseState();
+    this.refreshAssistant();
     this.refreshAudit();
   }
 
@@ -534,7 +664,11 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   get inventoryRows() {
-    return [...(this.inventorySummary?.materiales ?? [])].sort((a, b) => a.diasRestantes - b.diasRestantes);
+    return [...(this.inventorySummary?.materiales ?? [])].sort((a, b) => {
+      const aRank = this.urgencyRank(a.diasRestantes);
+      const bRank = this.urgencyRank(b.diasRestantes);
+      return aRank - bRank || a.diasRestantes - b.diasRestantes;
+    });
   }
 
   get inventorySaldoTotal(): number {
@@ -549,6 +683,37 @@ export class AppComponent implements OnInit, OnDestroy {
     return this.inventorySummary?.montoPorVencerMxn ?? 0;
   }
 
+  get inventoryMontoEnRiesgo(): number {
+    return (this.inventorySummary?.montoVencidoMxn ?? 0) + (this.inventorySummary?.montoPorVencerMxn ?? 0);
+  }
+
+
+
+  get inventoryTopRows() {
+    return this.inventoryRows.slice(0, 5);
+  }
+
+  get signedCloseStatus(): string {
+    return this.closeState?.status?.firmado ? 'Firmado' : (this.closeReport?.estado || 'Abierto');
+  }
+
+  get closeSignedAt(): string {
+    return this.closeState?.status?.firmadoAt ? this.formatDateTime(this.closeState.status.firmadoAt) : 'No calculable';
+  }
+
+  get taxExposureRows() {
+    return this.inventoryRows.slice(0, 8).map((row) => ({
+      material: row.material,
+      pedimento: row.pedimento,
+      rfc: row.rfc || 'No calculable',
+      valorMercancia: row.saldoAduaneroPendiente > 0 ? this.moneyLabel(row.montoEnRiesgo) : 'No calculable',
+      impuestosPotenciales: 'No calculable',
+      saldoAduaneroPendiente: row.saldoAduaneroPendiente > 0 ? this.moneyLabel(row.saldoAduaneroPendiente) : 'No calculable',
+      fechaLimite: row.fechaVencimiento ? this.formatDate(row.fechaVencimiento) : 'No calculable',
+      diasRestantes: row.diasRestantes,
+      estado: row.estado,
+    }));
+  }
   get expiringSoonCount(): number {
     return this.summary?.expiringSoonCount ?? this.records.filter((record) => this.daysLeft(record) <= 30).length;
   }
@@ -587,9 +752,27 @@ export class AppComponent implements OnInit, OnDestroy {
     return this.summary?.closeReadyCount ?? this.records.filter((record) => record.status === 'Cerrado' || this.daysLeft(record) > 0).length;
   }
 
+  private urgencyRank(diasRestantes: number): number {
+    if (diasRestantes < 0) return 0;
+    if (diasRestantes <= 30) return 1;
+    if (diasRestantes <= 60) return 2;
+    if (diasRestantes <= 90) return 3;
+    return 4;
+  }
+
+  private moneyLabel(value: number): string {
+    return Number.isFinite(value) ? value.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }) : 'No calculable';
+  }
+
+  private formatDateTime(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'No calculable';
+    return date.toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
+  }
+
   get riskAlerts(): ImmexRecord[] {
     return this.ledgerRows
-      .filter((record) => this.daysLeft(record) <= 60 || record.status === 'Conciliación')
+      .filter((record) => this.isRiskRelevant(record) && (this.daysLeft(record) <= 60 || record.status === 'Conciliación'))
       .sort((a: ImmexRecord, b: ImmexRecord) => {
         const aPriority = a.status === 'Conciliación' ? 0 : 1;
         const bPriority = b.status === 'Conciliación' ? 0 : 1;
@@ -665,10 +848,47 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
+  refreshCloseState(): void {
+    this.service.closeStatus().subscribe({
+      next: (data) => { this.closeState = data; this.cdr.markForCheck(); },
+      error: () => (this.closeState = null),
+    });
+    this.service.closeHistory().subscribe({
+      next: (data) => { this.closeHistory = data; this.cdr.markForCheck(); },
+      error: () => (this.closeHistory = []),
+    });
+  }
+
+  refreshAssistant(): void {
+    this.service.complianceAssistant().subscribe({
+      next: (data) => { this.assistantData = data; this.cdr.markForCheck(); },
+      error: () => (this.assistantData = null),
+    });
+  }
+
   refreshAudit(): void {
     this.service.auditEvents().subscribe({
       next: (data) => { this.auditEvents = data; this.cdr.markForCheck(); },
       error: () => (this.auditEvents = []),
+    });
+  }
+
+  signClose(): void {
+    const actor = (this.productionForm.auditor || this.pepsForm.auditor || 'Especialista').trim();
+    this.service.signClose({ actor }).subscribe({
+      next: (data) => {
+        this.closeState = {
+          status: data,
+          canSign: false,
+          canDownloadAnexo24: true,
+        };
+        this.refreshCloseReport();
+        this.refreshCloseState();
+        this.cdr.markForCheck();
+      },
+      error: (err: unknown) => {
+        this.error = this.extractHttpMessage(err, 'No se pudo firmar el cierre mensual.');
+      },
     });
   }
 
@@ -680,13 +900,17 @@ export class AppComponent implements OnInit, OnDestroy {
         this.productionResult = null;
         this.cdr.markForCheck();
       },
-      error: () => {
-        this.productionError = 'No se pudo previsualizar la producción.';
+      error: (err: unknown) => {
+        this.productionError = 'Producción: ' + this.extractHttpMessage(err, 'No se pudo previsualizar la producción.');
       },
     });
   }
 
   downloadAnexo24(): void {
+    if (!this.closeState?.canDownloadAnexo24) {
+      this.error = 'Debes firmar el cierre antes de descargar el Anexo 24.';
+      return;
+    }
     const query: Anexo24Query = {
       razonSocial: this.anexo24Filters.razonSocial?.trim() || undefined,
       mes: this.anexo24Filters.mes?.trim() || undefined,
@@ -700,8 +924,8 @@ export class AppComponent implements OnInit, OnDestroy {
         anchor.click();
         URL.revokeObjectURL(url);
       },
-      error: () => {
-        this.error = 'No se pudo descargar el reporte Anexo 24.';
+      error: (err: unknown) => {
+        this.error = this.extractHttpMessage(err, 'No se pudo descargar el reporte Anexo 24.');
       },
     });
   }
@@ -711,16 +935,18 @@ export class AppComponent implements OnInit, OnDestroy {
       this.productionError = 'Primero genera la previsualización.';
       return;
     }
+    this.productionError = '';
     this.service.productionExecute(this.productionForm).subscribe({
       next: (data) => {
         this.productionResult = data;
         this.productionPreview = data;
         this.cdr.markForCheck();
         this.load();
+        this.loadInventorySummary();
         this.refreshCloseReport();
       },
-      error: () => {
-        this.productionError = 'No se pudo ejecutar la producción mensual.';
+      error: (err: unknown) => {
+        this.productionError = 'Producción: ' + this.extractHttpMessage(err, 'No se pudo ejecutar la producción mensual.');
       },
     });
   }
@@ -730,10 +956,11 @@ export class AppComponent implements OnInit, OnDestroy {
       next: (data) => {
         this.pepsPreview = data;
         this.pepsResult = null;
+        this.pepsApplied = false;
         this.cdr.markForCheck();
       },
-      error: () => {
-        this.error = 'No se pudo simular PEPS.';
+      error: (err: unknown) => {
+        this.pepsError = 'PEPS: ' + this.extractHttpMessage(err, 'No se pudo simular PEPS.');
       },
     });
   }
@@ -747,12 +974,13 @@ export class AppComponent implements OnInit, OnDestroy {
       next: (data) => {
         this.pepsResult = data;
         this.pepsPreview = data;
+        this.pepsApplied = true;
         this.cdr.markForCheck();
         this.load();
         this.refreshCloseReport();
       },
-      error: () => {
-        this.error = 'No se pudo aplicar PEPS.';
+      error: (err: unknown) => {
+        this.pepsError = 'PEPS: ' + this.extractHttpMessage(err, 'No se pudo aplicar PEPS.');
       },
     });
   }
@@ -766,15 +994,32 @@ export class AppComponent implements OnInit, OnDestroy {
       next: (data) => {
         this.pepsResult = data;
         this.pepsPreview = null;
+        this.pepsApplied = false;
         this.cdr.markForCheck();
       },
-      error: () => {
-        this.error = 'No se pudo revertir la simulación.';
+      error: (err: unknown) => {
+        this.pepsError = 'PEPS: ' + this.extractHttpMessage(err, 'No se pudo revertir la simulación.');
       },
     });
   }
 
+  goToCloseItem(href: string): void {
+    void this.router.navigateByUrl(href);
+  }
+
+  private isRiskRelevant(record: ImmexRecord): boolean {
+    if (!record.activo) return false;
+    if ((record.status ?? '').toLowerCase() === 'cerrado') return false;
+    if ((record.movimiento ?? '').toLowerCase() === 'exportación' || (record.movimiento ?? '').toLowerCase() === 'exportacion') return false;
+    return true;
+  }
+
   save(): void {
+    const value = Number(this.form.valorUnitario);
+    if (!Number.isFinite(value) || value <= 0) {
+      this.error = 'Movimientos: el valor unitario debe ser mayor a 0.';
+      return;
+    }
     const payload = this.normalizeForm();
     const request$ = this.editingId
       ? this.service.update(this.editingId, payload)
@@ -785,8 +1030,8 @@ export class AppComponent implements OnInit, OnDestroy {
         this.resetForm();
         this.load();
       },
-      error: () => {
-        this.error = 'No se pudo guardar el registro.';
+      error: (err: unknown) => {
+        this.error = 'Movimientos: ' + this.extractHttpMessage(err, 'No se pudo guardar el registro.');
       },
     });
   }
@@ -816,8 +1061,8 @@ export class AppComponent implements OnInit, OnDestroy {
     if (!record.id) return;
     this.service.remove(record.id).subscribe({
       next: () => this.load(),
-      error: () => {
-        this.error = 'No se pudo eliminar el registro.';
+      error: (err: unknown) => {
+        this.error = this.extractHttpMessage(err, 'No se pudo eliminar el registro.');
       },
     });
   }
@@ -840,7 +1085,11 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   formatDate(value: string): string {
-    return new Intl.DateTimeFormat('es-MX').format(new Date(value + 'T00:00:00'));
+    const date = new Date(value + 'T00:00:00');
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
   }
 
   explainException(record: ImmexRecord): void {
@@ -901,7 +1150,7 @@ export class AppComponent implements OnInit, OnDestroy {
       proveedor: '',
       movimiento: 'Entrada',
       cantidad: 1,
-      valorUnitario: 0,
+      valorUnitario: '' as any,
       fechaIngreso: isoToday,
       fechaVencimiento: due.toISOString().slice(0, 10),
       status: 'Vigente',
@@ -928,6 +1177,19 @@ export class AppComponent implements OnInit, OnDestroy {
       notas: row.tipoMaterial,
       auditor: 'Sistema',
     };
+  }
+
+  private extractHttpMessage(error: unknown, fallback: string): string {
+    if (error instanceof HttpErrorResponse) {
+      if (error.status === 400) {
+        return error.error?.message || error.error?.error || error.message || fallback;
+      }
+      const detail = typeof error.error === 'string'
+        ? error.error
+        : error.error?.message || error.message;
+      return detail ? `${fallback} ${detail}` : fallback;
+    }
+    return fallback;
   }
 
   private normalizeForm(): ImmexRecord {

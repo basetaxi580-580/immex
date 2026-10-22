@@ -6,27 +6,35 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.bson.Document;
-import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
 public class PedimentoImportService {
-  private static final int DEFAULT_LOTE_PLAZO_MESES = 18;
   private final MongoTemplate mongoTemplate;
   private final AuditEventService auditEventService;
+  private final CloseMonthlyService closeMonthlyService;
+  private final PlazoAduaneroService plazoAduaneroService;
 
-  public PedimentoImportService(MongoTemplate mongoTemplate, AuditEventService auditEventService) {
+  public PedimentoImportService(MongoTemplate mongoTemplate, AuditEventService auditEventService, CloseMonthlyService closeMonthlyService, PlazoAduaneroService plazoAduaneroService) {
     this.mongoTemplate = mongoTemplate;
     this.auditEventService = auditEventService;
+    this.closeMonthlyService = closeMonthlyService;
+    this.plazoAduaneroService = plazoAduaneroService;
   }
 
   public PedimentoImportResult importPedimento(PedimentoImportRequest request) {
+    closeMonthlyService.requireSigned();
     ensureCollections();
+    validateUniquePartidas(request.getPartidas());
     LocalDate fecha = request.getFecha();
     String pedimento = request.getNumeroPedimento().trim();
     String razonSocial = request.getRazonSocial().trim();
+    String rfc = request.getRfc().trim();
     BigDecimal total = BigDecimal.ZERO;
     int created = 0;
 
@@ -37,23 +45,40 @@ public class PedimentoImportService {
       total = total.add(valorUnitario.multiply(BigDecimal.valueOf(cantidad)));
 
       String tipoMaterial = inferTipoMaterial(material);
-      int plazoMeses = resolvePlazoMeses(tipoMaterial);
-      LocalDate fechaVencimiento = fecha.plusMonths(plazoMeses);
-      long diasRestantes = ChronoUnit.DAYS.between(LocalDate.now(), fechaVencimiento);
+      int plazoMeses = plazoAduaneroService.resolvePlazoMeses(tipoMaterial, partida.getRegimenAduanero());
+      LocalDate fechaVencimiento = plazoMeses <= 0 ? null : fecha.plusMonths(plazoMeses);
+      long diasRestantes = fechaVencimiento == null ? Long.MAX_VALUE : ChronoUnit.DAYS.between(LocalDate.now(), fechaVencimiento);
       Document lote = new Document("material", material)
+          .append("partida", partida.getPartida().trim())
+          .append("unidad", partida.getUnidad().trim())
+          .append("regimenAduanero", partida.getRegimenAduanero().trim())
           .append("tipoMaterial", tipoMaterial)
           .append("plazoMeses", plazoMeses)
           .append("saldoInicial", cantidad)
           .append("saldo", cantidad)
+          .append("saldoFisico", cantidad)
+          .append("saldoAduaneroPendiente", cantidad)
           .append("fechaEntrada", fecha.toString())
-          .append("fechaVencimiento", fechaVencimiento.toString())
+          .append("fechaVencimiento", fechaVencimiento == null ? null : fechaVencimiento.toString())
           .append("diasRestantes", diasRestantes)
           .append("estado", estadoDe(diasRestantes))
           .append("pedimento", pedimento)
           .append("razonSocial", razonSocial)
+          .append("rfc", rfc)
           .append("valorUnitarioMxn", valorUnitario)
           .append("createdAt", Instant.now().toString())
-          .append("updatedAt", Instant.now().toString());
+          .append("updatedAt", Instant.now().toString())
+          .append("movimientos", List.of(new Document("tipoMovimiento", "ENTRADA")
+              .append("cantidad", cantidad)
+              .append("saldoAntes", 0)
+              .append("saldoDespues", cantidad)
+              .append("saldoFisicoAntes", 0)
+              .append("saldoFisicoDespues", cantidad)
+              .append("saldoAduaneroAntes", 0)
+              .append("saldoAduaneroDespues", cantidad)
+              .append("fecha", fecha.toString())
+              .append("usuario", "Sistema")
+              .append("observacion", "Alta de pedimento")));
       mongoTemplate.insert(lote, "lote_material");
       created++;
     }
@@ -61,12 +86,23 @@ public class PedimentoImportService {
     mongoTemplate.insert(new Document("folio", pedimento)
         .append("fecha", fecha.toString())
         .append("razonSocial", razonSocial)
+        .append("rfc", rfc)
         .append("partidas", created)
         .append("totalMxn", total)
         .append("createdAt", Instant.now().toString()), "pedimento");
 
     auditEventService.record("Pedimento", pedimento, "CREATE", "Sistema", "Alta de pedimento", razonSocial + " / partidas=" + created);
     return new PedimentoImportResult(pedimento, fecha, razonSocial, created, total);
+  }
+
+  private void validateUniquePartidas(List<PedimentoImportRequest.Partida> partidas) {
+    Set<String> seen = new HashSet<>();
+    for (PedimentoImportRequest.Partida partida : partidas) {
+      String key = normalize(partida.getPartida()) + '|' + normalize(partida.getMaterial());
+      if (!seen.add(key)) {
+        throw new IllegalStateException("No se permiten partidas duplicadas en el mismo pedimento");
+      }
+    }
   }
 
   private void ensureCollections() {
@@ -78,14 +114,6 @@ public class PedimentoImportService {
     }
   }
 
-  private int resolvePlazoMeses(String tipoMaterial) {
-    String normalized = tipoMaterial == null ? "" : tipoMaterial.trim().toLowerCase();
-    return switch (normalized) {
-      case "resina", "plastico", "plástico", "electronico", "electrónico", "metalmecanica", "metalmecánica", "quimico", "químico" -> DEFAULT_LOTE_PLAZO_MESES;
-      default -> DEFAULT_LOTE_PLAZO_MESES;
-    };
-  }
-
   private String inferTipoMaterial(String material) {
     String normalized = material == null ? "" : material.toLowerCase();
     if (normalized.contains("resina") || normalized.contains("plástico") || normalized.contains("plastico")) {
@@ -94,6 +122,9 @@ public class PedimentoImportService {
     if (normalized.contains("conector") || normalized.contains("arnés") || normalized.contains("arnes")) {
       return "electronico";
     }
+    if (normalized.contains("pigment") || normalized.contains("quim")) {
+      return "quimico";
+    }
     return "general";
   }
 
@@ -101,9 +132,19 @@ public class PedimentoImportService {
     if (diasRestantes < 0) {
       return "vencido";
     }
+    if (diasRestantes <= 30) {
+      return "crítico";
+    }
+    if (diasRestantes <= 60) {
+      return "urgente";
+    }
     if (diasRestantes <= 90) {
       return "por vencer";
     }
     return "vigente";
+  }
+
+  private String normalize(String value) {
+    return value == null ? "" : value.trim().toLowerCase();
   }
 }
