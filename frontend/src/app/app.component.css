@@ -1,5 +1,31 @@
 :host { display: block; min-width: 0; }
 .shell { min-width: 0; color: #0f172a; }
+.guided-start { margin-bottom: 20px; overflow: hidden; border: 1px solid #b7ced4; border-radius: 12px; background: #f7fbfa; }
+.guided-copy { padding: 24px 24px 16px; background: #0d3b46; color: #fff; }
+.guided-kicker, .guided-step { color: #a8d5cb; font-size: .78rem; font-weight: 700; letter-spacing: .04em; }
+.guided-copy h1 { max-width: 28ch; margin-top: 8px; font-size: clamp(1.65rem, 3vw, 2.35rem); line-height: 1.08; }
+.guided-copy p:last-child { max-width: 62ch; margin-top: 10px; color: #d8ebe6; line-height: 1.5; }
+.guided-choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 1px solid #c6d9d4; }
+.guided-choices button { min-height: 94px; padding: 16px; border: 0; border-right: 1px solid #c6d9d4; border-radius: 0; background: transparent; color: #173b42; text-align: left; }
+.guided-choices button:last-child { border-right: 0; }
+.guided-choices button:hover, .guided-choices button.is-selected { background: #dceee9; }
+.guided-choices button.is-selected { box-shadow: inset 0 -3px #0f766e; }
+.guided-choices strong, .guided-choices span { display: block; }
+.guided-choices strong { font-size: 1rem; }
+.guided-choices span { margin-top: 6px; color: #52706c; font-size: .86rem; line-height: 1.35; }
+.guided-result { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 20px 24px; }
+.guided-result h2 { margin-top: 5px; color: #173b42; font-size: 1.15rem; }
+.guided-result p { max-width: 66ch; margin-top: 6px; color: #47625f; line-height: 1.45; }
+button.guided-action { flex: 0 0 auto; background: #0f766e; border-color: #0f766e; }
+.operation-sequence { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 0; padding: 16px 24px 20px; border-top: 1px solid #d8e6e1; list-style: none; }
+.operation-sequence li { position: relative; display: flex; align-items: center; gap: 10px; min-width: 0; padding-right: 12px; color: #69827f; }
+.operation-sequence li:not(:last-child)::after { position: absolute; top: 15px; right: 0; width: 18px; height: 1px; background: #c6d9d4; content: ''; }
+.operation-sequence li > span { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; border: 1px solid #b7ced4; border-radius: 50%; background: #fff; font-size: .82rem; font-weight: 700; }
+.operation-sequence li.is-ready { color: #173b42; }
+.operation-sequence li.is-ready > span { border-color: #0f766e; background: #0f766e; color: #fff; }
+.operation-sequence strong, .operation-sequence small { display: block; overflow-wrap: anywhere; }
+.operation-sequence strong { font-size: .88rem; }
+.operation-sequence small { margin-top: 2px; font-size: .77rem; }
 .card { min-width: 0; padding: 20px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; }
 h1, h2, p { margin: 0; }
 h1 { font-size: 1.5rem; font-weight: 700; }
@@ -47,4 +73,5 @@ th, td { padding: 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
 .alert-banner strong { font-size: .95rem; text-transform: uppercase; letter-spacing: .04em; }
 .alert-banner p { margin: 0; }
 @media(max-width:1100px) { .summary-inline { grid-template-columns: repeat(2,minmax(0,1fr)); } }
-@media(max-width:600px) { .card { padding: 16px; } .two-cols, .summary-grid { grid-template-columns: 1fr; } .summary-inline > div { padding: 12px 6px; } .summary-inline strong { font-size: 1.1rem; } }
+@media(max-width:720px) { .guided-choices, .operation-sequence { grid-template-columns: 1fr 1fr; } .guided-choices button:nth-child(2) { border-right: 0; } .guided-choices button:nth-child(3) { border-top: 1px solid #c6d9d4; grid-column: 1 / -1; } .operation-sequence { gap: 14px; } .operation-sequence li:not(:last-child)::after { display: none; } }
+@media(max-width:600px) { .card { padding: 16px; } .guided-copy, .guided-result, .operation-sequence { padding-left: 16px; padding-right: 16px; } .guided-result { align-items: start; flex-direction: column; } .guided-action { width: 100%; } .two-cols, .summary-grid, .guided-choices, .operation-sequence { grid-template-columns: 1fr; } .guided-choices button, .guided-choices button:nth-child(2), .guided-choices button:nth-child(3) { border-right: 0; border-bottom: 1px solid #c6d9d4; grid-column: auto; } .guided-choices button:last-child { border-bottom: 0; } .summary-inline > div { padding: 12px 6px; } .summary-inline strong { font-size: 1.1rem; } }

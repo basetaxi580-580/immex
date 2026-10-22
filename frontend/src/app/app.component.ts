@@ -21,6 +21,41 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
       </section>
       <ng-container [ngSwitch]="activeView">
         <section *ngSwitchCase="'dashboard'" class="dashboard-panel">
+          <section class="guided-start" aria-labelledby="guided-start-title">
+            <div class="guided-copy">
+              <p class="guided-kicker">Guía de operación</p>
+              <h1 id="guided-start-title">¿Qué necesitas resolver hoy?</h1>
+              <p>Elige el problema. Te mostramos los datos que lo explican y el siguiente paso para resolverlo.</p>
+            </div>
+            <div class="guided-choices" role="group" aria-label="Objetivo de la revisión">
+              <button type="button" [class.is-selected]="guidanceIntent === 'expiring'" (click)="chooseGuidance('expiring')">
+                <strong>Revisar vencimientos</strong>
+                <span>{{ urgentMaterialCount }} materiales requieren atención</span>
+              </button>
+              <button type="button" [class.is-selected]="guidanceIntent === 'balance'" (click)="chooseGuidance('balance')">
+                <strong>Entender un saldo</strong>
+                <span>{{ pendingBalanceCount }} saldos pendientes de descargar</span>
+              </button>
+              <button type="button" [class.is-selected]="guidanceIntent === 'close'" (click)="chooseGuidance('close')">
+                <strong>Preparar el cierre</strong>
+                <span>{{ closePendingLabel }}</span>
+              </button>
+            </div>
+            <div class="guided-result" aria-live="polite">
+              <div>
+                <span class="guided-step">Siguiente paso</span>
+                <h2>{{ guidanceTitle }}</h2>
+                <p>{{ guidanceDescription }}</p>
+              </div>
+              <button type="button" class="primary guided-action" (click)="continueGuidance()">{{ guidanceAction }}</button>
+            </div>
+            <ol class="operation-sequence" aria-label="Secuencia de control IMMEX">
+              <li [class.is-ready]="entryCount > 0"><span>1</span><div><strong>Importación</strong><small>{{ entryCount }} registros cargados</small></div></li>
+              <li [class.is-ready]="consumptionCount > 0"><span>2</span><div><strong>Producción</strong><small>{{ consumptionCount }} consumos registrados</small></div></li>
+              <li [class.is-ready]="exportCount > 0"><span>3</span><div><strong>Exportación</strong><small>{{ exportCount }} salidas registradas</small></div></li>
+              <li [class.is-ready]="pendingBalanceCount === 0"><span>4</span><div><strong>Descargo</strong><small>{{ pendingBalanceCount ? 'Saldo por revisar' : 'Sin saldo pendiente' }}</small></div></li>
+            </ol>
+          </section>
           <header class="card hero-summary" id="dashboard">
             <div>
               <p class="eyebrow">IMMEX · Operación</p>
@@ -606,6 +641,7 @@ export class AppComponent implements OnInit, OnDestroy {
   productionError = '';
   pepsError = '';
   pepsApplied = false;
+  guidanceIntent: 'expiring' | 'balance' | 'close' = 'expiring';
   editingId: string | null = null;
   connected = true;
   error = '';
@@ -686,6 +722,47 @@ export class AppComponent implements OnInit, OnDestroy {
 
   get inventoryMontoEnRiesgo(): number {
     return (this.inventorySummary?.montoVencidoMxn ?? 0) + (this.inventorySummary?.montoPorVencerMxn ?? 0);
+  }
+
+  get urgentMaterialCount(): number {
+    return this.inventoryRows.filter((row) => row.diasRestantes <= 90).length;
+  }
+
+  get pendingBalanceCount(): number {
+    return this.inventoryRows.filter((row) => row.saldoAduaneroPendiente > 0).length;
+  }
+
+  get closePendingLabel(): string {
+    const pending = this.closeState?.status?.pendingCount ?? 0;
+    return pending ? `${pending} comprobaciones pendientes` : 'Revisa el estado del periodo';
+  }
+
+  get guidanceTitle(): string {
+    if (this.guidanceIntent === 'balance') return 'Aclara primero qué saldo sigue pendiente';
+    if (this.guidanceIntent === 'close') return 'Confirma lo que bloquea el cierre mensual';
+    return 'Prioriza los pedimentos con plazo más cercano';
+  }
+
+  get guidanceDescription(): string {
+    if (this.guidanceIntent === 'balance') {
+      return this.pendingBalanceCount
+        ? `Hay ${this.pendingBalanceCount} saldos aduaneros que requieren relación con producción, exportación o un ajuste documentado.`
+        : 'No hay saldo aduanero pendiente en los datos disponibles.';
+    }
+    if (this.guidanceIntent === 'close') {
+      return this.closeState?.status?.canClose
+        ? 'El periodo está listo para revisión final y firma.'
+        : 'Revisa los pasos pendientes y las excepciones antes de solicitar la firma.';
+    }
+    return this.urgentMaterialCount
+      ? `Encontramos ${this.urgentMaterialCount} materiales dentro de la ventana de 90 días. Revisa primero los que vencen antes.`
+      : 'No hay materiales dentro de la ventana de 90 días en los datos disponibles.';
+  }
+
+  get guidanceAction(): string {
+    if (this.guidanceIntent === 'balance') return 'Revisar saldos y PEPS';
+    if (this.guidanceIntent === 'close') return 'Abrir cierre mensual';
+    return 'Ver vencimientos';
   }
 
 
@@ -872,6 +949,19 @@ export class AppComponent implements OnInit, OnDestroy {
       next: (data) => { this.auditEvents = data; this.cdr.markForCheck(); },
       error: () => (this.auditEvents = []),
     });
+  }
+
+  chooseGuidance(intent: 'expiring' | 'balance' | 'close'): void {
+    this.guidanceIntent = intent;
+  }
+
+  continueGuidance(): void {
+    const route = this.guidanceIntent === 'expiring'
+      ? '/dashboard/risk'
+      : this.guidanceIntent === 'balance'
+        ? '/dashboard/peps'
+        : '/dashboard/close';
+    void this.router.navigateByUrl(route);
   }
 
   signClose(): void {
