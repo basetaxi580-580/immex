@@ -19,7 +19,15 @@ public class LoteMovimientoService {
     this.mongoTemplate = mongoTemplate;
   }
 
+  public List<DescargaRegistro> simularPeps(String material, int cantidad, String pedimento, String usuario, String observacion) {
+    return planPeps(material, cantidad, pedimento, usuario, observacion, false);
+  }
+
   public List<DescargaRegistro> consumirPeps(String material, int cantidad, String pedimento, String usuario, String observacion) {
+    return planPeps(material, cantidad, pedimento, usuario, observacion, true);
+  }
+
+  private List<DescargaRegistro> planPeps(String material, int cantidad, String pedimento, String usuario, String observacion, boolean persistir) {
     ensureCollections();
     List<Document> lotes = new ArrayList<>(mongoTemplate.getCollection("lote_material")
         .find(new Document("material", material))
@@ -37,8 +45,10 @@ public class LoteMovimientoService {
       if (saldo <= 0) continue;
       long consume = Math.min(saldo, remaining);
       long saldoDespues = saldo - consume;
-      updateSaldo(objectId, saldoDespues);
-      movimientos.add(registrarDescarga(lote, objectId.toHexString(), pedimento, usuario, observacion, consume, saldo, saldoDespues));
+      if (persistir) {
+        updateSaldo(objectId, saldoDespues);
+      }
+      movimientos.add(registrarDescarga(lote, objectId.toHexString(), pedimento, usuario, observacion, consume, saldo, saldoDespues, persistir));
       remaining -= (int) consume;
     }
 
@@ -49,7 +59,7 @@ public class LoteMovimientoService {
     return movimientos;
   }
 
-  private DescargaRegistro registrarDescarga(Document lote, String loteId, String pedimento, String usuario, String observacion, long cantidad, long saldoAntes, long saldoDespues) {
+  private DescargaRegistro registrarDescarga(Document lote, String loteId, String pedimento, String usuario, String observacion, long cantidad, long saldoAntes, long saldoDespues, boolean persistir) {
     DescargaRegistro registro = new DescargaRegistro();
     registro.setId(new ObjectId().toHexString());
     registro.setLoteId(loteId);
@@ -58,23 +68,25 @@ public class LoteMovimientoService {
     registro.setCantidad((int) cantidad);
     registro.setValorUnitarioMxn(lote.get("valorUnitarioMxn") == null ? null : new java.math.BigDecimal(String.valueOf(lote.get("valorUnitarioMxn"))));
     registro.setFecha(LocalDate.now());
-    registro.setTipoMovimiento("PEPS");
+    registro.setTipoMovimiento(persistir ? "PEPS" : "SIMULACION");
     registro.setSaldoAntes(saldoAntes);
     registro.setSaldoDespues(saldoDespues);
     registro.setUsuario(usuario);
     registro.setObservacion(observacion);
 
-    mongoTemplate.insert(new Document("loteId", loteId)
-        .append("pedimento", pedimento)
-        .append("material", registro.getMaterial())
-        .append("cantidad", cantidad)
-        .append("fecha", registro.getFecha().toString())
-        .append("tipoMovimiento", "PEPS")
-        .append("saldoAntes", saldoAntes)
-        .append("saldoDespues", saldoDespues)
-        .append("usuario", usuario)
-        .append("observacion", observacion)
-        .append("createdAt", Instant.now().toString()), "descarga");
+    if (persistir) {
+      mongoTemplate.insert(new Document("loteId", loteId)
+          .append("pedimento", pedimento)
+          .append("material", registro.getMaterial())
+          .append("cantidad", cantidad)
+          .append("fecha", registro.getFecha().toString())
+          .append("tipoMovimiento", "PEPS")
+          .append("saldoAntes", saldoAntes)
+          .append("saldoDespues", saldoDespues)
+          .append("usuario", usuario)
+          .append("observacion", observacion)
+          .append("createdAt", Instant.now().toString()), "descarga");
+    }
 
     return registro;
   }

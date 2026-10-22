@@ -14,6 +14,7 @@ export interface ImmexRecord {
   auditor?: string;
   createdAt?: string;
   updatedAt?: string;
+  razonSocial?: string;
 }
 
 export interface ImmexDashboardSummary {
@@ -40,6 +41,16 @@ export interface ImmexCloseReport {
   warnings: string[];
 }
 
+export interface PepsMovement {
+  loteId: string;
+  pedimento: string;
+  material: string;
+  cantidad: number;
+  saldoAntes: number;
+  saldoDespues: number;
+  tipoMovimiento: string;
+}
+
 export interface PepsOperationResult {
   material: string;
   requestedQuantity: number;
@@ -47,6 +58,7 @@ export interface PepsOperationResult {
   completed: boolean;
   message: string;
   processedAt: string;
+  movimientos: PepsMovement[];
 }
 
 export interface AuditEvent {
@@ -111,4 +123,25 @@ export interface ProduccionMensualResult {
   movimientosDescarga: number;
   completado: boolean;
   message: string;
+}
+
+export interface RazonSocialOption {
+  nombre: string;
+  rfc: string;
+  programaImmex: string;
+  activo: boolean;
+}
+
+export interface LoteMaterialView {
+  id: string;
+  material: string;
+  pedimento: string;
+  razonSocial: string;
+  saldo: number;
+  fechaEntrada: string | null;
+  fechaVencimiento: string | null;
+  diasRestantes: number;
+  estado: string;
+  valorUnitarioMxn: number;
+  tipoMaterial: string;
 }

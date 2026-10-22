@@ -30,8 +30,8 @@ public class ImmexRecordController {
   }
 
   @GetMapping
-  public List<ImmexRecord> all() {
-    return service.findAll();
+  public List<ImmexRecord> all(@org.springframework.web.bind.annotation.RequestParam(required = false) String razonSocial) {
+    return service.findAll(razonSocial);
   }
 
   @GetMapping("/{id}")
@@ -40,18 +40,33 @@ public class ImmexRecordController {
   }
 
   @GetMapping("/summary")
-  public ImmexDashboardSummary summary() {
-    return service.summary();
+  public ImmexDashboardSummary summary(@org.springframework.web.bind.annotation.RequestParam(required = false) String razonSocial) {
+    return service.summary(razonSocial);
   }
 
   @GetMapping("/close-report")
-  public ImmexCloseReport closeReport() {
-    return service.buildCloseReport();
+  public ImmexCloseReport closeReport(@org.springframework.web.bind.annotation.RequestParam(required = false) String razonSocial) {
+    return service.buildCloseReport(razonSocial);
+  }
+
+  @PostMapping("/peps/simulate")
+  public PepsOperationResult simulatePeps(@Valid @RequestBody PepsConsumptionRequest request) {
+    return service.simulatePeps(request);
+  }
+
+  @PostMapping("/peps/apply")
+  public PepsOperationResult applyPeps(@Valid @RequestBody PepsConsumptionRequest request) {
+    return service.applyPeps(request);
   }
 
   @PostMapping("/peps/consume")
   public PepsOperationResult consumePeps(@Valid @RequestBody PepsConsumptionRequest request) {
-    return service.consumePeps(request);
+    return service.applyPeps(request);
+  }
+
+  @PostMapping("/peps/revert")
+  public PepsOperationResult revertPeps(@Valid @RequestBody PepsConsumptionRequest request) {
+    return service.revertPeps(request);
   }
 
   @PostMapping

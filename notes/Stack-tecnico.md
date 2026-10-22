@@ -24,3 +24,6 @@ created: 2026-10-20
 - Frontend llama endpoints relativos `/api/*`
 - Backend expone API REST sobre `server.port`
 - Docker Compose une frontend, backend y MongoDB
+- Se usa Apache POI para exportar el Anexo 24 a Excel
+- El dashboard consume un resumen inventario/alertas vía `/api/dashboard/inventory`
+- El simulador PEPS expone preview, apply y revert con bitácora

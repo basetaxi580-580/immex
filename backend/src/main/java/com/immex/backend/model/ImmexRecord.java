@@ -14,6 +14,7 @@ public class ImmexRecord {
   private String material;
   private String proveedor;
   private String movimiento;
+  private String razonSocial;
   private Integer cantidad;
   private BigDecimal valorUnitario;
   private LocalDate fechaIngreso;
@@ -33,6 +34,7 @@ public class ImmexRecord {
       String material,
       String proveedor,
       String movimiento,
+      String razonSocial,
       Integer cantidad,
       BigDecimal valorUnitario,
       LocalDate fechaIngreso,
@@ -48,6 +50,7 @@ public class ImmexRecord {
     this.material = material;
     this.proveedor = proveedor;
     this.movimiento = movimiento;
+    this.razonSocial = razonSocial;
     this.cantidad = cantidad;
     this.valorUnitario = valorUnitario;
     this.fechaIngreso = fechaIngreso;
@@ -70,6 +73,8 @@ public class ImmexRecord {
   public void setProveedor(String proveedor) { this.proveedor = proveedor; }
   public String getMovimiento() { return movimiento; }
   public void setMovimiento(String movimiento) { this.movimiento = movimiento; }
+  public String getRazonSocial() { return razonSocial; }
+  public void setRazonSocial(String razonSocial) { this.razonSocial = razonSocial; }
   public Integer getCantidad() { return cantidad; }
   public void setCantidad(Integer cantidad) { this.cantidad = cantidad; }
   public BigDecimal getValorUnitario() { return valorUnitario; }

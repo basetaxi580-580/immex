@@ -27,6 +27,36 @@ import { CollectionSnapshot, ImmexRecord } from './models';
         </div>
       </section>
 
+      <section class="card case-card" *ngIf="!searchOnly">
+        <div class="card-head">
+          <h2>Casos de datos ficticios</h2>
+          <span>Separados por planta y razón social</span>
+        </div>
+        <div class="case-grid">
+          <article class="case-item" *ngFor="let item of demoCases">
+            <div class="case-top">
+              <div>
+                <p class="case-kicker">{{ item.kicker }}</p>
+                <h3>{{ item.title }}</h3>
+              </div>
+              <span class="case-pill">{{ item.total }} registros</span>
+            </div>
+            <p class="case-text">{{ item.description }}</p>
+            <div class="case-stats">
+              <span>Vigentes: {{ item.vigentes }}</span>
+              <span>Por vencer: {{ item.porVencer }}</span>
+              <span>Vencidos: {{ item.vencidos }}</span>
+            </div>
+            <div class="case-chips">
+              <span class="badge" *ngFor="let company of item.companies">{{ company }}</span>
+            </div>
+            <ul class="case-list">
+              <li *ngFor="let material of item.materials">{{ material }}</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
       <section class="card import-card" *ngIf="!searchOnly">
         <div class="card-head">
           <h2>Captura de pedimento de importación</h2>
@@ -299,6 +329,41 @@ export class InventoryPageComponent implements OnInit {
   private readonly router = inject(Router);
   readonly searchOnly = inject(ActivatedRoute).snapshot.data['searchOnly'] === true;
 
+  demoCases = [
+    {
+      kicker: 'Caso 1',
+      title: 'Planta de inyección con merma y reciclado',
+      description: 'Resina ABS y regranulado con lotes frescos, material por vencer y un lote vencido para simular el cierre de merma y retorno interno.',
+      total: 3,
+      vigentes: 1,
+      porVencer: 1,
+      vencidos: 1,
+      companies: ['Aerosistemas del Norte, S.A. de C.V.'],
+      materials: ['Resina ABS natural', 'Regranulado ABS reciclado', 'Pigmento masterbatch negro'],
+    },
+    {
+      kicker: 'Caso 2',
+      title: 'Planta de arneses con BOM amplio',
+      description: 'Arnés automotriz con múltiples componentes: conectores, terminales, cinta, grommets y consumibles, con inventario cruzado entre estados.',
+      total: 3,
+      vigentes: 1,
+      porVencer: 1,
+      vencidos: 1,
+      companies: ['Componentes Industriales del Bajío, S.A. de C.V.'],
+      materials: ['Conector 12 pines', 'Terminal hembra 6.3 mm', 'Cinta PVC automotriz'],
+    },
+    {
+      kicker: 'Caso 3',
+      title: 'Empresa con 2 razones sociales',
+      description: 'Vista compartida de dos empresas para validar que el selector global mantiene la separación y permite revisar ambas razones sociales sin mezclar saldos.',
+      total: 6,
+      vigentes: 2,
+      porVencer: 2,
+      vencidos: 2,
+      companies: ['Aerosistemas del Norte, S.A. de C.V.', 'Componentes Industriales del Bajío, S.A. de C.V.'],
+      materials: ['Inventario por empresa separado', 'Lotes vigentes / por vencer / vencidos', 'Consulta consolidada verificada'],
+    },
+  ];
   records: ImmexRecord[] = [];
   filteredRecords: ImmexRecord[] = [];
   collections: CollectionSnapshot[] = [];

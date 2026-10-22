@@ -39,6 +39,7 @@ th, td { padding: 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
 .summary-grid strong { font-size: 1.4rem; }
 .exception-list, .audit-list, .close-report-box { display: grid; gap: 12px; }
 .exception-item, .audit-item { padding: 12px 0; border-bottom: 1px solid #cbd5e1; display: grid; gap: 6px; overflow-wrap: anywhere; }
+.exception-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .exception-item span, .audit-item span { color: #475569; }
 .flow-list { display: grid; gap: 16px; padding-left: 20px; }
 .warning-list { display: flex; gap: 8px; flex-wrap: wrap; }

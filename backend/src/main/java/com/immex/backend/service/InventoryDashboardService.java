@@ -2,6 +2,7 @@ package com.immex.backend.service;
 
 import com.immex.backend.model.DashboardInventorySummary;
 import com.immex.backend.model.DashboardMaterialRow;
+import com.immex.backend.model.LoteMaterialView;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -20,8 +21,9 @@ public class InventoryDashboardService {
     this.mongoTemplate = mongoTemplate;
   }
 
-  public DashboardInventorySummary inventory() {
+  public DashboardInventorySummary inventory(String razonSocialFilter) {
     ensureCollections();
+    String razonSocial = normalize(razonSocialFilter);
     List<Document> lotes = mongoTemplate.getCollection("lote_material").find().into(new ArrayList<>());
     List<DashboardMaterialRow> rows = new ArrayList<>();
     BigDecimal saldoTotal = BigDecimal.ZERO;
@@ -29,6 +31,8 @@ public class InventoryDashboardService {
     BigDecimal montoPorVencer = BigDecimal.ZERO;
 
     for (Document lote : lotes) {
+      String loteRazonSocial = normalize(stringValue(lote.get("razonSocial")));
+      if (!razonSocial.isBlank() && !loteRazonSocial.equals(razonSocial)) continue;
       String material = stringValue(lote.get("material"));
       long saldo = numberValue(lote.get("saldo"));
       if (saldo <= 0) continue;
@@ -52,6 +56,54 @@ public class InventoryDashboardService {
     return new DashboardInventorySummary(saldoTotal, montoVencido, montoPorVencer, rows);
   }
 
+  public LoteMaterialView materialView(String material, String razonSocial) {
+    ensureCollections();
+    String normalizedMaterial = normalize(material);
+    String normalizedCompany = normalize(razonSocial);
+    return mongoTemplate.getCollection("lote_material").find().into(new ArrayList<>()).stream()
+        .filter(doc -> normalizedCompany.isBlank() || normalizedCompany.equals(normalize(stringValue(doc.get("razonSocial")))))
+        .map(this::toView)
+        .filter(view -> normalizedMaterial.isBlank() || normalize(view.material()).equals(normalizedMaterial) || view.material().toLowerCase().contains(normalizedMaterial))
+        .sorted(Comparator.comparing(LoteMaterialView::diasRestantes).thenComparing(LoteMaterialView::fechaEntrada, Comparator.nullsLast(Comparator.naturalOrder())))
+        .findFirst()
+        .orElse(null);
+  }
+
+  public List<LoteMaterialView> materialViews(String material, String razonSocial) {
+    ensureCollections();
+    String normalizedMaterial = normalize(material);
+    String normalizedCompany = normalize(razonSocial);
+    return mongoTemplate.getCollection("lote_material").find().into(new ArrayList<>()).stream()
+        .filter(doc -> normalizedCompany.isBlank() || normalizedCompany.equals(normalize(stringValue(doc.get("razonSocial")))))
+        .map(this::toView)
+        .filter(view -> normalizedMaterial.isBlank() || normalize(view.material()).equals(normalizedMaterial) || view.material().toLowerCase().contains(normalizedMaterial))
+        .sorted(Comparator.comparing(LoteMaterialView::diasRestantes).thenComparing(LoteMaterialView::fechaEntrada, Comparator.nullsLast(Comparator.naturalOrder())))
+        .toList();
+  }
+
+  private LoteMaterialView toView(Document lote) {
+    LocalDate fechaEntrada = readDate(lote.get("fechaEntrada"));
+    LocalDate fechaVencimiento = readDate(lote.get("fechaVencimiento"));
+    long diasRestantes = fechaVencimiento == null ? Long.MAX_VALUE : ChronoUnit.DAYS.between(LocalDate.now(), fechaVencimiento);
+    long saldo = numberValue(lote.get("saldo"));
+    return new LoteMaterialView(
+        stringValue(lote.get("_id")),
+        stringValue(lote.get("material")),
+        stringValue(lote.get("pedimento")),
+        stringValue(lote.get("razonSocial")),
+        saldo,
+        fechaEntrada,
+        fechaVencimiento,
+        diasRestantes,
+        estadoDe(saldo, diasRestantes),
+        moneyValue(lote.get("valorUnitarioMxn")),
+        stringValue(lote.get("tipoMaterial")));
+  }
+
+  private LocalDate readDateSafe(Document doc) {
+    return readDate(doc.get("fechaEntrada"));
+  }
+
   private void ensureCollections() {
     if (!mongoTemplate.collectionExists("lote_material")) mongoTemplate.createCollection("lote_material");
   }
@@ -63,37 +115,27 @@ public class InventoryDashboardService {
   }
 
   private BigDecimal moneyValue(Object value) {
-    if (value == null) {
-      return BigDecimal.ZERO;
-    }
-    if (value instanceof BigDecimal decimal) {
-      return decimal;
-    }
-    if (value instanceof Number number) {
-      return BigDecimal.valueOf(number.doubleValue());
-    }
-    try {
-      return new BigDecimal(value.toString());
-    } catch (NumberFormatException ex) {
-      return BigDecimal.ZERO;
-    }
-  }
-
-  private BigDecimal defaultValorUnitario(String material) {
-    String normalized = material == null ? "" : material.toLowerCase();
-    if (normalized.contains("conector")) {
-      return new BigDecimal("1.85");
-    }
-    if (normalized.contains("resina")) {
-      return new BigDecimal("3.20");
-    }
-    return new BigDecimal("1.00");
+    if (value == null) return BigDecimal.ZERO;
+    if (value instanceof BigDecimal decimal) return decimal;
+    if (value instanceof Number number) return BigDecimal.valueOf(number.doubleValue());
+    try { return new BigDecimal(value.toString()); } catch (NumberFormatException ex) { return BigDecimal.ZERO; }
   }
 
   private LocalDate readDate(Object value) {
     if (value == null) return null;
     if (value instanceof LocalDate localDate) return localDate;
-    return LocalDate.parse(value.toString());
+    try { return LocalDate.parse(value.toString()); } catch (Exception ex) { return null; }
+  }
+
+  private String estadoDe(long saldo, long diasRestantes) {
+    if (saldo <= 0) return "cerrado";
+    if (diasRestantes < 0) return "vencido";
+    if (diasRestantes <= 90) return "por vencer";
+    return "vigente";
+  }
+
+  private String normalize(String value) {
+    return value == null ? "" : value.trim().toLowerCase();
   }
 
   private String stringValue(Object value) {

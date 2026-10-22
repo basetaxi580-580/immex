@@ -16,7 +16,7 @@ public class DashboardController {
   }
 
   @GetMapping("/inventory")
-  public DashboardInventorySummary inventory() {
-    return service.inventory();
+  public DashboardInventorySummary inventory(@org.springframework.web.bind.annotation.RequestParam(required = false) String razonSocial) {
+    return service.inventory(razonSocial);
   }
 }

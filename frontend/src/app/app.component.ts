@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { ImmexService } from './immex.service';
-import { DashboardInventorySummary, ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult, ProduccionMensualLine, ProduccionMensualResult, Anexo24Query } from './models';
+import { DashboardInventorySummary, ImmexCloseReport, ImmexDashboardSummary, ImmexRecord, PepsOperationResult, ProduccionMensualLine, ProduccionMensualResult, Anexo24Query, RazonSocialOption, LoteMaterialView } from './models';
 
 type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 'risk' | 'peps' | 'production' | 'export' | 'close' | 'audit';
 
@@ -27,6 +27,7 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
               <div><span>Saldo total</span><strong>{{ inventorySaldoTotal | currency:'MXN':'symbol':'1.0-0' }}</strong></div>
               <div><span>Por vencer 90 días</span><strong>{{ inventoryMontoPorVencer | currency:'MXN':'symbol':'1.0-0' }}</strong></div>
               <div><span>Vencido</span><strong>{{ inventoryMontoVencido | currency:'MXN':'symbol':'1.0-0' }}</strong></div>
+              <div><span>Conector 12p</span><strong>{{ conector12DisplayDays }}</strong><small>{{ conector12DisplayDate }}</small></div>
             </div>
           </header>
 
@@ -95,6 +96,13 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
             <label>
               <span>Pedimento / Folio</span>
               <input [(ngModel)]="form.pedimento" name="pedimento" required placeholder="PI-2401-001" />
+            </label>
+            <label>
+              <span>Razón social</span>
+              <select [(ngModel)]="form.razonSocial" name="razonSocial" required>
+                <option value="">Selecciona una razón social</option>
+                <option *ngFor="let option of razonSociales" [value]="option.nombre">{{ option.nombre }} · {{ option.rfc }}</option>
+              </select>
             </label>
             <label>
               <span>Material</span>
@@ -166,7 +174,7 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
         <section *ngSwitchCase="'ledger'" class="card list-card" id="list-card">
           <div class="card-head">
             <h2>Ledger IMMEX</h2>
-            <span>{{ records.length }} movimientos</span>
+            <span>{{ ledgerRows.length }} movimientos</span>
           </div>
 
           <div class="table-wrap">
@@ -185,7 +193,7 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let record of records">
+                <tr *ngFor="let record of ledgerRows">
                   <td>{{ record.pedimento }}</td>
                   <td>
                     <strong>{{ record.material }}</strong>
@@ -209,7 +217,7 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
                     </div>
                   </td>
                 </tr>
-                <tr *ngIf="!records.length">
+                <tr *ngIf="!ledgerRows.length">
                   <td colspan="9" class="empty">Aún no hay movimientos.</td>
                 </tr>
               </tbody>
@@ -250,8 +258,12 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
           </div>
           <div class="exception-list">
             <div class="exception-item" *ngFor="let record of riskAlerts">
-              <strong>{{ record.material }}</strong>
+              <div class="exception-head">
+                <strong>{{ record.material }}</strong>
+                <button type="button" class="ghost" (click)="explainException(record)">Explicar</button>
+              </div>
               <span>{{ record.pedimento }} · {{ daysLeft(record) }} días · {{ riskFor(record) | currency:'MXN':'symbol':'1.0-0' }}</span>
+              <p class="muted" *ngIf="getExceptionExplanation(record)">{{ getExceptionExplanation(record) }}</p>
             </div>
             <div class="empty" *ngIf="!riskAlerts.length">Sin excepciones por ahora.</div>
           </div>
@@ -260,9 +272,9 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
         <section *ngSwitchCase="'peps'" class="card module-card" id="peps-section">
           <div class="card-head">
             <h2>PEPS</h2>
-            <span>Consumo simulado</span>
+            <span>Simulador y ejecución</span>
           </div>
-          <form class="form compact-form" (ngSubmit)="runPeps()">
+          <form class="form compact-form" (ngSubmit)="simulatePeps()">
             <label>
               <span>Material</span>
               <input [(ngModel)]="pepsForm.material" name="pepsMaterial" placeholder="Resina ABS" required />
@@ -281,8 +293,48 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
               <span>Motivo</span>
               <textarea [(ngModel)]="pepsForm.reason" name="pepsReason" rows="2" placeholder="Salida para producción"></textarea>
             </label>
-            <button class="primary" type="submit">Aplicar PEPS</button>
+            <div class="actions">
+              <button class="primary" type="submit">Simular PEPS</button>
+              <button class="ghost" type="button" (click)="applyPeps()" [disabled]="!pepsPreview">Aplicar</button>
+              <button class="ghost" type="button" (click)="revertPeps()" [disabled]="!pepsPreview">Revertir</button>
+            </div>
           </form>
+          <div class="close-report-box" *ngIf="pepsPreview; else pepsEmpty">
+            <p><strong>Material:</strong> {{ pepsPreview.material }}</p>
+            <p><strong>Solicitado:</strong> {{ pepsPreview.requestedQuantity }}</p>
+            <p><strong>Procesado:</strong> {{ pepsPreview.processedQuantity }}</p>
+            <p><strong>Estado:</strong> {{ pepsPreview.completed ? 'Completo' : 'Parcial' }}</p>
+            <p><strong>Mensaje:</strong> {{ pepsPreview.message }}</p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Lote</th>
+                    <th>Pedimento</th>
+                    <th>Material</th>
+                    <th>Cantidad</th>
+                    <th>Saldo antes</th>
+                    <th>Saldo después</th>
+                    <th>Tipo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of pepsPreview.movimientos">
+                    <td>{{ item.loteId }}</td>
+                    <td>{{ item.pedimento }}</td>
+                    <td>{{ item.material }}</td>
+                    <td>{{ item.cantidad }}</td>
+                    <td>{{ item.saldoAntes }}</td>
+                    <td>{{ item.saldoDespues }}</td>
+                    <td>{{ item.tipoMovimiento }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <ng-template #pepsEmpty>
+            <p class="muted">Simula una descarga para revisar cómo quedarían los saldos antes de aplicar.</p>
+          </ng-template>
           <p class="success" *ngIf="pepsResult">{{ pepsResult.message }}</p>
         </section>
 
@@ -415,9 +467,11 @@ export class AppComponent implements OnInit, OnDestroy {
 
   activeView: DashboardView = 'dashboard';
   records: ImmexRecord[] = [];
+  lotes: LoteMaterialView[] = [];
   summary: ImmexDashboardSummary | null = null;
   inventorySummary: DashboardInventorySummary | null = null;
   closeReport: ImmexCloseReport | null = null;
+  pepsPreview: PepsOperationResult | null = null;
   pepsResult: PepsOperationResult | null = null;
   auditEvents: any[] = [];
   productionPreview: ProduccionMensualResult | null = null;
@@ -426,6 +480,7 @@ export class AppComponent implements OnInit, OnDestroy {
   editingId: string | null = null;
   connected = true;
   error = '';
+  exceptionExplanations: Record<string, string> = {};
   form: ImmexRecord = this.emptyForm();
   pepsForm = {
     material: 'Resina ABS',
@@ -445,6 +500,10 @@ export class AppComponent implements OnInit, OnDestroy {
     razonSocial: '',
     mes: '',
   };
+  razonSociales: RazonSocialOption[] = [
+    { nombre: 'Aerosistemas del Norte, S.A. de C.V.', rfc: 'ASN9403159K2', programaImmex: 'IMMEX Manufactura', activo: true },
+    { nombre: 'Componentes Industriales del Bajío, S.A. de C.V.', rfc: 'CIB0209187Q4', programaImmex: 'IMMEX Servicios', activo: true },
+  ];
 
   ngOnInit(): void {
     this.syncView();
@@ -468,6 +527,10 @@ export class AppComponent implements OnInit, OnDestroy {
 
   get riskTotal(): number {
     return this.summary?.riskTotal ?? this.records.reduce((sum, record) => sum + this.riskFor(record), 0);
+  }
+
+  get ledgerRows(): ImmexRecord[] {
+    return this.lotes.length ? this.lotes.map((row) => this.toRecord(row)) : this.records;
   }
 
   get inventoryRows() {
@@ -525,11 +588,35 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   get riskAlerts(): ImmexRecord[] {
-    const source = this.summary?.pepsCandidate ? [this.summary.pepsCandidate, ...this.records] : this.records;
-    return [...source]
-      .filter((record, index, self) => self.findIndex((candidate) => candidate.id === record.id) === index)
-      .filter((record) => this.daysLeft(record) <= 60)
-      .sort((a, b) => this.daysLeft(a) - this.daysLeft(b));
+    return this.ledgerRows
+      .filter((record) => this.daysLeft(record) <= 60 || record.status === 'Conciliación')
+      .sort((a: ImmexRecord, b: ImmexRecord) => {
+        const aPriority = a.status === 'Conciliación' ? 0 : 1;
+        const bPriority = b.status === 'Conciliación' ? 0 : 1;
+        return aPriority - bPriority || this.daysLeft(a) - this.daysLeft(b);
+      });
+  }
+
+  get conector12Rows(): LoteMaterialView[] {
+    return this.getLoteViews('Conector 12 pines');
+  }
+
+  get conector12First(): LoteMaterialView | null {
+    return this.conector12Rows[0] ?? null;
+  }
+
+  get conector12DisplayDays(): string {
+    const row = this.conector12First;
+    return row ? `${row.diasRestantes} días` : '—';
+  }
+
+  get conector12DisplayDate(): string {
+    const row = this.conector12First;
+    return row?.fechaVencimiento ? this.formatDate(row.fechaVencimiento) : '—';
+  }
+
+  getLoteViews(material?: string): LoteMaterialView[] {
+    return this.lotes.filter((row) => !material || row.material.toLowerCase().includes(material.toLowerCase()));
   }
 
   load(): void {
@@ -539,6 +626,7 @@ export class AppComponent implements OnInit, OnDestroy {
         this.connected = true;
         this.error = '';
         this.loadSummary();
+        this.loadLotes();
         this.cdr.markForCheck();
       },
       error: () => {
@@ -560,6 +648,13 @@ export class AppComponent implements OnInit, OnDestroy {
     this.service.inventorySummary().subscribe({
       next: (data) => { this.inventorySummary = data; this.cdr.markForCheck(); },
       error: () => (this.inventorySummary = null),
+    });
+  }
+
+  loadLotes(): void {
+    this.service.lotes(undefined, this.service.getCompanyFilter()).subscribe({
+      next: (data) => { this.lotes = data; this.cdr.markForCheck(); },
+      error: () => (this.lotes = []),
     });
   }
 
@@ -630,16 +725,51 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
-  runPeps(): void {
-    this.service.consumePeps(this.pepsForm).subscribe({
+  simulatePeps(): void {
+    this.service.simulatePeps(this.pepsForm).subscribe({
+      next: (data) => {
+        this.pepsPreview = data;
+        this.pepsResult = null;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.error = 'No se pudo simular PEPS.';
+      },
+    });
+  }
+
+  applyPeps(): void {
+    if (!this.pepsPreview) {
+      this.error = 'Primero simula la descarga.';
+      return;
+    }
+    this.service.applyPeps(this.pepsForm).subscribe({
       next: (data) => {
         this.pepsResult = data;
+        this.pepsPreview = data;
         this.cdr.markForCheck();
         this.load();
         this.refreshCloseReport();
       },
       error: () => {
         this.error = 'No se pudo aplicar PEPS.';
+      },
+    });
+  }
+
+  revertPeps(): void {
+    if (!this.pepsPreview) {
+      this.error = 'Primero simula la descarga.';
+      return;
+    }
+    this.service.revertPeps(this.pepsForm).subscribe({
+      next: (data) => {
+        this.pepsResult = data;
+        this.pepsPreview = null;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.error = 'No se pudo revertir la simulación.';
       },
     });
   }
@@ -668,6 +798,7 @@ export class AppComponent implements OnInit, OnDestroy {
       material: record.material,
       proveedor: record.proveedor,
       movimiento: record.movimiento,
+      razonSocial: record.razonSocial ?? this.service.getCompanyFilter(),
       cantidad: record.cantidad,
       valorUnitario: record.valorUnitario,
       fechaIngreso: record.fechaIngreso,
@@ -712,6 +843,34 @@ export class AppComponent implements OnInit, OnDestroy {
     return new Intl.DateTimeFormat('es-MX').format(new Date(value + 'T00:00:00'));
   }
 
+  explainException(record: ImmexRecord): void {
+    const key = this.exceptionKey(record);
+    this.exceptionExplanations[key] = this.buildExceptionExplanation(record);
+  }
+
+  getExceptionExplanation(record: ImmexRecord): string {
+    return this.exceptionExplanations[this.exceptionKey(record)] || '';
+  }
+
+  private buildExceptionExplanation(record: ImmexRecord): string {
+    const pedimento = record.pedimento || 'este pedimento';
+    if (record.status === 'Conciliación') {
+      return `El pedimento ${pedimento} está en conciliación porque la información no cuadra entre Data Stage y el agente aduanal. Revisa primero cantidades, fechas y valor declarado; luego corrige el documento que tenga el dato equivocado y vuelve a conciliar.`;
+    }
+    const days = this.daysLeft(record);
+    if (days <= 0) {
+      return `El pedimento ${pedimento} ya venció. Revisa si todavía tiene saldo, decide si se exporta, se regulariza o se retorna, y deja evidencia de la corrección.`;
+    }
+    if (days <= 30) {
+      return `El pedimento ${pedimento} está muy cerca de vencer. Verifica el saldo y confirma con el agente aduanal si la cantidad importada y la descargada son las mismas para evitar diferencias.`;
+    }
+    return `El pedimento ${pedimento} requiere revisión porque hay una diferencia de control documental. Valida las cantidades, el material y el pedimento en ambos lados antes de cerrarlo.`;
+  }
+
+  private exceptionKey(record: ImmexRecord): string {
+    return record.id || `${record.pedimento}|${record.material}|${record.fechaIngreso}`;
+  }
+
   private syncView(): void {
     const path = this.router.url.split('?')[0].split('#')[0].replace(/^\//, '') || 'dashboard';
     const routeMap: Record<string, DashboardView> = {
@@ -752,12 +911,32 @@ export class AppComponent implements OnInit, OnDestroy {
     };
   }
 
+  private toRecord(row: LoteMaterialView): ImmexRecord {
+    return {
+      id: row.id,
+      pedimento: row.pedimento,
+      material: row.material,
+      proveedor: row.razonSocial || '—',
+      movimiento: 'Entrada',
+      razonSocial: row.razonSocial,
+      cantidad: Number(row.saldo || 0),
+      valorUnitario: Number(row.valorUnitarioMxn || 0),
+      fechaIngreso: row.fechaEntrada ?? row.fechaVencimiento ?? new Date().toISOString().slice(0, 10),
+      fechaVencimiento: row.fechaVencimiento ?? row.fechaEntrada ?? new Date().toISOString().slice(0, 10),
+      status: row.estado,
+      activo: row.saldo > 0,
+      notas: row.tipoMaterial,
+      auditor: 'Sistema',
+    };
+  }
+
   private normalizeForm(): ImmexRecord {
     return {
       pedimento: this.form.pedimento.trim(),
       material: this.form.material.trim(),
       proveedor: this.form.proveedor.trim(),
       movimiento: this.form.movimiento,
+      razonSocial: (this.form.razonSocial ?? '').trim(),
       cantidad: Number(this.form.cantidad),
       valorUnitario: Number(this.form.valorUnitario),
       fechaIngreso: this.form.fechaIngreso,

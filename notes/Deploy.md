@@ -22,6 +22,10 @@ created: 2026-10-20
 - Frontend responde HTTP 200.
 - Swagger responde HTTP 200.
 - Backend responde detrás del frontend por proxy.
+- Dashboard principal y rutas modulares verificadas en vivo.
+- Campana de alertas, vista de auditor y descarga del Anexo 24 verificadas en producción.
+- Simulador PEPS con **Simular / Aplicar / Revertir** verificado en el flujo de entrega.
+- Inventario con tres casos ficticios realistas y lotes vigentes / por vencer / vencidos verificado en la UI.
 
 ## Separación
 - IMMEX no comparte instancia ni Docker con Base580.

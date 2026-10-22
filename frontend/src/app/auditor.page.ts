@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { ImmexService } from './immex.service';
-import { AuditEvent, DashboardInventorySummary, ImmexDashboardSummary, ImmexRecord } from './models';
+import { AuditEvent, DashboardInventorySummary, ImmexDashboardSummary, ImmexRecord, LoteMaterialView } from './models';
 
 @Component({
   selector: 'app-auditor-page',
@@ -20,6 +20,7 @@ import { AuditEvent, DashboardInventorySummary, ImmexDashboardSummary, ImmexReco
           <div><span>Saldo total</span><strong>{{ inventorySummary?.saldoTotalMxn | currency:'MXN':'symbol':'1.0-0' }}</strong></div>
           <div><span>Eventos</span><strong>{{ auditEvents.length }}</strong></div>
           <div><span>Alertas</span><strong>{{ inventorySummary?.materiales?.filter(item => item.diasRestantes <= 90).length ?? 0 }}</strong></div>
+          <div><span>Conector 12p</span><strong>{{ conector12Rows[0]?.diasRestantes ?? '—' }}</strong><small>{{ conector12Rows[0]?.fechaVencimiento ? (conector12Rows[0].fechaVencimiento | date:'shortDate') : '—' }}</small></div>
         </div>
       </header>
 
@@ -115,6 +116,7 @@ export class AuditorPageComponent implements OnInit {
   summary: ImmexDashboardSummary | null = null;
   inventorySummary: DashboardInventorySummary | null = null;
   auditEvents: AuditEvent[] = [];
+  conector12Rows: LoteMaterialView[] = [];
 
   ngOnInit(): void {
     this.loadAll();
@@ -125,5 +127,6 @@ export class AuditorPageComponent implements OnInit {
     this.service.summary().subscribe({ next: (data) => { this.summary = data; this.cdr.markForCheck(); }, error: () => (this.summary = null) });
     this.service.inventorySummary().subscribe({ next: (data) => { this.inventorySummary = data; this.cdr.markForCheck(); }, error: () => (this.inventorySummary = null) });
     this.service.auditEvents().subscribe({ next: (data) => { this.auditEvents = data; this.cdr.markForCheck(); }, error: () => (this.auditEvents = []) });
+    this.service.lotes('Conector 12 pines').subscribe({ next: (data) => { this.conector12Rows = data; this.cdr.markForCheck(); }, error: () => (this.conector12Rows = []) });
   }
 }

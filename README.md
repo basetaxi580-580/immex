@@ -2,10 +2,13 @@
 
 Plataforma para control IMMEX y Anexo 24:
 - registro único de materiales importados
-- entradas, consumo y exportaciones
+- entradas, consumo, exportaciones y simulación PEPS
 - cálculo de vencimientos y riesgo en pesos
-- alertas preventivas
+- alertas preventivas en campana
+- bitácora de auditoría de solo agregar
+- reporte Anexo 24 en Excel
 - trazabilidad completa
+- inventario con escenarios ficticios realistas para validación funcional
 
 ## Ejecutar localmente
 

@@ -31,8 +31,10 @@ public class ImmexRecordService {
     this.loteMovimientoService = loteMovimientoService;
   }
 
-  public List<ImmexRecord> findAll() {
-    return repository.findAll();
+  public List<ImmexRecord> findAll(String razonSocial) {
+    return repository.findAll().stream()
+        .filter(record -> matchesCompany(record, razonSocial))
+        .toList();
   }
 
   public ImmexRecord findById(String id) {
@@ -48,6 +50,7 @@ public class ImmexRecordService {
         request.getMaterial().trim(),
         request.getProveedor().trim(),
         request.getMovimiento().trim(),
+        trimToNull(request.getRazonSocial()),
         request.getCantidad(),
         request.getValorUnitario(),
         request.getFechaIngreso(),
@@ -65,7 +68,7 @@ public class ImmexRecordService {
         "CREATE",
         actorFrom(request.getAuditor()),
         "Alta de movimiento",
-        "Pedimento " + saved.getPedimento() + " / " + saved.getMaterial());
+        "Pedimento " + saved.getPedimento() + " / " + saved.getMaterial() + " / " + saved.getRazonSocial());
     return saved;
   }
 
@@ -75,6 +78,7 @@ public class ImmexRecordService {
     existing.setMaterial(request.getMaterial().trim());
     existing.setProveedor(request.getProveedor().trim());
     existing.setMovimiento(request.getMovimiento().trim());
+    existing.setRazonSocial(trimToNull(request.getRazonSocial()));
     existing.setCantidad(request.getCantidad());
     existing.setValorUnitario(request.getValorUnitario());
     existing.setFechaIngreso(request.getFechaIngreso());
@@ -91,7 +95,7 @@ public class ImmexRecordService {
         "UPDATE",
         actorFrom(request.getAuditor()),
         "Actualización de movimiento",
-        "Pedimento " + saved.getPedimento() + " / " + saved.getMaterial());
+        "Pedimento " + saved.getPedimento() + " / " + saved.getMaterial() + " / " + saved.getRazonSocial());
     return saved;
   }
 
@@ -104,11 +108,11 @@ public class ImmexRecordService {
         "DELETE",
         existing.getAuditor(),
         "Eliminación de registro",
-        "Pedimento " + existing.getPedimento() + " / " + existing.getMaterial());
+        "Pedimento " + existing.getPedimento() + " / " + existing.getMaterial() + " / " + existing.getRazonSocial());
   }
 
-  public ImmexDashboardSummary summary() {
-    List<ImmexRecord> records = repository.findAll();
+  public ImmexDashboardSummary summary(String razonSocial) {
+    List<ImmexRecord> records = findAll(razonSocial);
     ImmexRecord pepsCandidate = records.stream()
         .filter(record -> record.isActivo() && !"Cerrado".equalsIgnoreCase(record.getStatus()))
         .sorted(Comparator.comparing(ImmexRecord::getFechaIngreso, Comparator.nullsLast(Comparator.naturalOrder())))
@@ -142,8 +146,8 @@ public class ImmexRecordService {
     return new ImmexDashboardSummary(records.size(), riskTotal, expiringSoonCount, alert90Count, alert60Count, alert30Count, entryCount, consumptionCount, exportCount, closeReadyCount, pepsCandidate);
   }
 
-  public ImmexCloseReport buildCloseReport() {
-    List<ImmexRecord> records = repository.findAll();
+  public ImmexCloseReport buildCloseReport(String razonSocial) {
+    List<ImmexRecord> records = findAll(razonSocial);
     long openRecords = records.stream().filter(record -> record.isActivo() && !"Cerrado".equalsIgnoreCase(record.getStatus())).count();
     long expiringSoonCount = records.stream().filter(record -> daysLeft(record) <= 30).count();
     long riskTotal = records.stream().map(this::lineRisk).mapToLong(BigDecimal::longValue).sum();
@@ -167,7 +171,22 @@ public class ImmexRecordService {
     return new ImmexCloseReport(Instant.now(), records.size(), openRecords, expiringSoonCount, riskTotal, pepsCandidate, warnings);
   }
 
-  public PepsOperationResult consumePeps(PepsConsumptionRequest request) {
+  public PepsOperationResult simulatePeps(PepsConsumptionRequest request) {
+    var movimientos = loteMovimientoService.simularPeps(
+        request.getMaterial().trim(),
+        request.getQuantity(),
+        request.getMaterial().trim(),
+        actorFrom(request.getAuditor()),
+        request.getReason());
+    int processed = movimientos.stream().mapToInt(movimiento -> movimiento.getCantidad() == null ? 0 : movimiento.getCantidad()).sum();
+    boolean completed = processed == request.getQuantity();
+    String message = completed
+        ? "Simulación lista: no se guardó nada"
+        : "Simulación parcial: no habría inventario suficiente para completar la solicitud";
+    return new PepsOperationResult(request.getMaterial(), request.getQuantity(), processed, completed, message, Instant.now(), movimientos);
+  }
+
+  public PepsOperationResult applyPeps(PepsConsumptionRequest request) {
     var movimientos = loteMovimientoService.consumirPeps(
         request.getMaterial().trim(),
         request.getQuantity(),
@@ -182,11 +201,27 @@ public class ImmexRecordService {
     auditEventService.record(
         "Descarga",
         request.getMaterial(),
-        "PEPS_CONSUME",
+        "PEPS_APPLY",
         actorFrom(request.getAuditor()),
         request.getReason(),
         "Solicitado=" + request.getQuantity() + ", procesado=" + processed + ", movimientos=" + movimientos.size());
-    return new PepsOperationResult(request.getMaterial(), request.getQuantity(), processed, completed, message, Instant.now());
+    return new PepsOperationResult(request.getMaterial(), request.getQuantity(), processed, completed, message, Instant.now(), movimientos);
+  }
+
+  public PepsOperationResult consumePeps(PepsConsumptionRequest request) {
+    return applyPeps(request);
+  }
+
+  public PepsOperationResult revertPeps(PepsConsumptionRequest request) {
+    auditEventService.record(
+        "Descarga",
+        request.getMaterial(),
+        "PEPS_REVERT",
+        actorFrom(request.getAuditor()),
+        request.getReason(),
+        "Simulación descartada sin cambios en inventario");
+    int quantity = request.getQuantity() == null ? 0 : request.getQuantity();
+    return new PepsOperationResult(request.getMaterial(), quantity, 0, true, "Simulación revertida; no se guardaron cambios", Instant.now(), java.util.List.of());
   }
 
   public List<AuditEvent> listAuditEvents() {
@@ -205,6 +240,14 @@ public class ImmexRecordService {
       return Long.MAX_VALUE;
     }
     return ChronoUnit.DAYS.between(LocalDate.now(), record.getFechaVencimiento());
+  }
+
+  private boolean matchesCompany(ImmexRecord record, String razonSocial) {
+    if (razonSocial == null || razonSocial.isBlank() || "all".equalsIgnoreCase(razonSocial)) {
+      return true;
+    }
+    String recordCompany = trimToNull(record.getRazonSocial());
+    return recordCompany != null && recordCompany.equalsIgnoreCase(razonSocial.trim());
   }
 
   private String trimToNull(String value) {

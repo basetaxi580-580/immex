@@ -19,6 +19,8 @@ public class ImmexRecordRequest {
   @NotBlank
   private String movimiento;
 
+  private String razonSocial;
+
   @NotNull
   @Positive
   private Integer cantidad;
@@ -50,6 +52,8 @@ public class ImmexRecordRequest {
   public void setProveedor(String proveedor) { this.proveedor = proveedor; }
   public String getMovimiento() { return movimiento; }
   public void setMovimiento(String movimiento) { this.movimiento = movimiento; }
+  public String getRazonSocial() { return razonSocial; }
+  public void setRazonSocial(String razonSocial) { this.razonSocial = razonSocial; }
   public Integer getCantidad() { return cantidad; }
   public void setCantidad(Integer cantidad) { this.cantidad = cantidad; }
   public BigDecimal getValorUnitario() { return valorUnitario; }
