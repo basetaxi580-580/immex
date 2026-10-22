@@ -69,7 +69,7 @@ public class ComplianceAssistantService {
     }
     List<DashboardMaterialRow> urgent = inventory.materiales().stream()
         .filter(row -> row.diasRestantes() <= 90)
-        .sorted(Comparator.comparingInt(DashboardMaterialRow::diasRestantes))
+        .sorted(Comparator.comparingLong(DashboardMaterialRow::diasRestantes))
         .toList();
     if (!urgent.isEmpty()) {
       DashboardMaterialRow first = urgent.get(0);

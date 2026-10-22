@@ -491,10 +491,11 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
           <div class="close-step-list" *ngIf="closeHistory.length && !closeState?.status?.history?.length">
             <div class="close-step" *ngFor="let item of closeHistory">
               <div class="close-step-head">
-                <strong>{{ item.periodo }}</strong>
-                <span>{{ item.firmado ? 'Firmado' : 'Abierto' }}</span>
+                <strong>{{ item.stepLabel }}</strong>
+                <span>{{ item.changedAt | date:'dd/MM/yyyy HH:mm' }}</span>
               </div>
-              <p>Avance {{ item.progressPct }}% · Pendientes {{ item.pendingCount }}</p>
+              <p>{{ item.actor }} · {{ item.field }}</p>
+              <p class="muted">{{ item.oldValue }} → {{ item.newValue }} · {{ item.reason }}</p>
             </div>
           </div>
           <div class="close-report-box" *ngIf="closeState; else closeReportEmpty">
@@ -510,7 +511,7 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
             <p><strong>Monto en riesgo:</strong> {{ closeReport?.montoEnRiesgoMxn | currency:'MXN':'symbol':'1.0-0' }}</p>
             <p><strong>Abiertos:</strong> {{ closeReport?.openRecords ?? 0 }}</p>
             <p><strong>Por vencer:</strong> {{ closeReport?.expiringSoonCount ?? 0 }}</p>
-            <p *ngIf="closeReport?.pepsCandidate"><strong>PEPS:</strong> {{ closeReport?.pepsCandidate?.material }}</p>
+            <p *ngIf="closeReport?.pepsCandidate"><strong>PEPS:</strong> {{ closeReport.pepsCandidate.material }}</p>
             <div class="actions">
               <button class="primary" type="button" *ngIf="closeState.canSign" (click)="signClose()">Firmar cierre</button>
               <button class="ghost" type="button" (click)="downloadAnexo24()" [disabled]="!closeState.canDownloadAnexo24">Descargar reporte Anexo 24</button>
