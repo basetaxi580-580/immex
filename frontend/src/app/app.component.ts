@@ -537,8 +537,16 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
         <section *ngSwitchCase="'close'" class="card module-card" id="close-section">
           <div class="card-head">
             <h2>Cierre mensual</h2>
-            <span>Reporte listo</span>
+            <span>Revisión guiada del periodo</span>
           </div>
+          <section class="close-guidance" *ngIf="closeState">
+            <div>
+              <span class="guided-step">Estado del cierre</span>
+              <h3>{{ closeGuidanceTitle }}</h3>
+              <p>{{ closeGuidanceDescription }}</p>
+            </div>
+            <button type="button" class="primary guided-action" (click)="continueCloseGuidance()">{{ closeGuidanceAction }}</button>
+          </section>
           <div class="close-step-list" *ngIf="closeState?.status?.steps?.length">
             <div class="close-step" *ngFor="let step of closeState.status.steps">
               <div class="close-step-head">
@@ -809,6 +817,28 @@ export class AppComponent implements OnInit, OnDestroy {
     return 1;
   }
 
+  get closeGuidanceTitle(): string {
+    if (this.closeState?.status?.firmado) return 'El periodo ya quedó firmado';
+    if (this.closeState?.canSign) return 'El periodo está listo para aprobación final';
+    if (this.closeState?.status?.hasCriticalErrors) return 'Resuelve primero los riesgos que bloquean el cierre';
+    return 'Completa las comprobaciones pendientes del periodo';
+  }
+
+  get closeGuidanceDescription(): string {
+    if (this.closeState?.status?.firmado) return 'Ya puedes descargar el reporte del Anexo 24 y consultar la evidencia de los cambios realizados.';
+    if (this.closeState?.canSign) return 'Las comprobaciones requeridas están completas. La firma dejará el registro de aprobación del periodo.';
+    if (this.closeState?.status?.hasCriticalErrors) return 'Hay saldos, vencimientos o excepciones que requieren revisión antes de que el responsable pueda firmar.';
+    const pending = this.closeState?.status?.pendingCount ?? 0;
+    return `Quedan ${pending} comprobaciones. Revisa cada una y actualiza su estado cuando tengas la evidencia necesaria.`;
+  }
+
+  get closeGuidanceAction(): string {
+    if (this.closeState?.status?.firmado) return 'Descargar Anexo 24';
+    if (this.closeState?.canSign) return 'Firmar cierre';
+    if (this.closeState?.status?.hasCriticalErrors) return 'Revisar excepciones';
+    return 'Actualizar comprobaciones';
+  }
+
   get investigationNextTitle(): string {
     if (this.investigationAnswer === 'export') return 'Simula la descarga antes de aplicarla';
     if (this.investigationAnswer === 'production') return 'Registra o valida el consumo de producción';
@@ -1057,6 +1087,23 @@ export class AppComponent implements OnInit, OnDestroy {
       return;
     }
     void this.router.navigateByUrl('/dashboard/audit');
+  }
+
+  continueCloseGuidance(): void {
+    if (!this.closeState) return;
+    if (this.closeState.status.firmado) {
+      this.downloadAnexo24();
+      return;
+    }
+    if (this.closeState.canSign) {
+      this.signClose();
+      return;
+    }
+    if (this.closeState.status.hasCriticalErrors) {
+      void this.router.navigateByUrl('/dashboard/risk');
+      return;
+    }
+    this.refreshCloseState();
   }
 
   signClose(): void {
