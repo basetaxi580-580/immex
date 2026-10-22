@@ -334,19 +334,46 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
         <section *ngSwitchCase="'risk'" class="card module-card wide-card" id="risk-section">
           <div class="card-head">
             <h2>Excepciones y riesgo</h2>
-            <span>{{ expiringSoonCount }} urgentes</span>
+            <span>{{ expiringSoonCount }} urgentes · selecciona una para investigarla</span>
           </div>
           <div class="exception-list">
             <div class="exception-item" *ngFor="let record of riskAlerts">
               <div class="exception-head">
                 <strong>{{ record.material }}</strong>
-                <button type="button" class="ghost" (click)="explainException(record)">Explicar</button>
+                <div class="row-actions">
+                  <button type="button" class="link" (click)="startInvestigation(record)">Investigar</button>
+                  <button type="button" class="ghost" (click)="explainException(record)">Explicar</button>
+                </div>
               </div>
               <span>{{ record.pedimento }} · {{ daysLeft(record) }} días · {{ riskFor(record) | currency:'MXN':'symbol':'1.0-0' }}</span>
               <p class="muted" *ngIf="getExceptionExplanation(record)">{{ getExceptionExplanation(record) }}</p>
             </div>
             <div class="empty" *ngIf="!riskAlerts.length">Sin excepciones por ahora.</div>
           </div>
+          <section class="investigation" *ngIf="activeInvestigation" aria-live="polite">
+            <div class="investigation-evidence">
+              <span>Investigación en curso</span>
+              <h3>{{ activeInvestigation.pedimento }} · {{ activeInvestigation.material }}</h3>
+              <p>Quedan {{ daysLeft(activeInvestigation) }} días. El valor registrado de esta operación es {{ riskFor(activeInvestigation) | currency:'MXN':'symbol':'1.0-0' }}.</p>
+            </div>
+            <div class="investigation-question">
+              <p class="guided-step">Pregunta 1 de 1</p>
+              <h3>¿Qué evidencia tienes para explicar este saldo?</h3>
+              <div class="investigation-options" role="group" aria-label="Evidencia disponible">
+                <button type="button" [class.is-selected]="investigationAnswer === 'export'" (click)="answerInvestigation('export')">Tengo una exportación que puede respaldarlo</button>
+                <button type="button" [class.is-selected]="investigationAnswer === 'production'" (click)="answerInvestigation('production')">Tengo producción pendiente de relacionar</button>
+                <button type="button" [class.is-selected]="investigationAnswer === 'document'" (click)="answerInvestigation('document')">Hay una diferencia documental</button>
+              </div>
+            </div>
+            <div class="investigation-next" *ngIf="investigationAnswer">
+              <div>
+                <span class="guided-step">Acción sugerida</span>
+                <h3>{{ investigationNextTitle }}</h3>
+                <p>{{ investigationNextDescription }}</p>
+              </div>
+              <button type="button" class="primary guided-action" (click)="continueInvestigation()">{{ investigationNextAction }}</button>
+            </div>
+          </section>
         </section>
 
         <section *ngSwitchCase="'peps'" class="card module-card" id="peps-section">
@@ -642,6 +669,8 @@ export class AppComponent implements OnInit, OnDestroy {
   pepsError = '';
   pepsApplied = false;
   guidanceIntent: 'expiring' | 'balance' | 'close' = 'expiring';
+  activeInvestigation: ImmexRecord | null = null;
+  investigationAnswer: 'export' | 'production' | 'document' | null = null;
   editingId: string | null = null;
   connected = true;
   error = '';
@@ -763,6 +792,28 @@ export class AppComponent implements OnInit, OnDestroy {
     if (this.guidanceIntent === 'balance') return 'Revisar saldos y PEPS';
     if (this.guidanceIntent === 'close') return 'Abrir cierre mensual';
     return 'Ver vencimientos';
+  }
+
+  get investigationNextTitle(): string {
+    if (this.investigationAnswer === 'export') return 'Simula la descarga antes de aplicarla';
+    if (this.investigationAnswer === 'production') return 'Registra o valida el consumo de producción';
+    return 'Compara los documentos y deja evidencia de la diferencia';
+  }
+
+  get investigationNextDescription(): string {
+    if (this.investigationAnswer === 'export') {
+      return 'La simulación PEPS mostrará qué pedimentos se afectarían. Revisa la asignación antes de confirmar cualquier descarga.';
+    }
+    if (this.investigationAnswer === 'production') {
+      return 'Registra la producción real y revisa la BOM. Después podrás relacionar el consumo con la exportación correspondiente.';
+    }
+    return 'Revisa cantidades, fechas y pedimento entre fuentes. Conserva el motivo de la corrección para el cierre mensual.';
+  }
+
+  get investigationNextAction(): string {
+    if (this.investigationAnswer === 'export') return 'Abrir simulación PEPS';
+    if (this.investigationAnswer === 'production') return 'Abrir producción mensual';
+    return 'Abrir trazabilidad';
   }
 
 
@@ -962,6 +1013,35 @@ export class AppComponent implements OnInit, OnDestroy {
         ? '/dashboard/peps'
         : '/dashboard/close';
     void this.router.navigateByUrl(route);
+  }
+
+  startInvestigation(record: ImmexRecord): void {
+    this.activeInvestigation = record;
+    this.investigationAnswer = null;
+    this.explainException(record);
+  }
+
+  answerInvestigation(answer: 'export' | 'production' | 'document'): void {
+    this.investigationAnswer = answer;
+  }
+
+  continueInvestigation(): void {
+    if (!this.activeInvestigation || !this.investigationAnswer) return;
+    if (this.investigationAnswer === 'export') {
+      this.pepsForm = {
+        ...this.pepsForm,
+        material: this.activeInvestigation.material,
+        quantity: Math.max(1, Number(this.activeInvestigation.cantidad || 1)),
+        reason: `Descarga por exportación relacionada con ${this.activeInvestigation.pedimento}`,
+      };
+      void this.router.navigateByUrl('/dashboard/peps');
+      return;
+    }
+    if (this.investigationAnswer === 'production') {
+      void this.router.navigateByUrl('/dashboard/production');
+      return;
+    }
+    void this.router.navigateByUrl('/dashboard/audit');
   }
 
   signClose(): void {

@@ -65,6 +65,18 @@ th, td { padding: 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
 .summary-grid strong { font-size: 1.4rem; }
 .exception-list, .audit-list, .close-report-box, .pending-list { display: grid; gap: 12px; }
 .exception-item, .audit-item, .pending-item { padding: 12px 0; border-bottom: 1px solid #cbd5e1; display: grid; gap: 6px; overflow-wrap: anywhere; }
+.exception-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.investigation { display: grid; gap: 0; margin-top: 20px; border: 1px solid #b7ced4; border-radius: 10px; overflow: hidden; background: #f7fbfa; }
+.investigation-evidence { padding: 18px 20px; background: #e1f0ec; color: #173b42; }
+.investigation-evidence > span { color: #0f766e; font-size: .8rem; font-weight: 700; }
+.investigation h3 { margin: 6px 0 0; font-size: 1.05rem; }
+.investigation p { margin-top: 6px; color: #47625f; line-height: 1.45; }
+.investigation-question, .investigation-next { padding: 20px; }
+.investigation-question { border-top: 1px solid #c6d9d4; }
+.investigation-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.investigation-options button { min-height: 72px; border-color: #b7ced4; background: #fff; color: #173b42; text-align: left; line-height: 1.35; }
+.investigation-options button:hover, .investigation-options button.is-selected { border-color: #0f766e; background: #dceee9; }
+.investigation-next { display: flex; justify-content: space-between; align-items: center; gap: 18px; border-top: 1px solid #c6d9d4; background: #fff; }
 .pending-item { grid-template-columns: 1fr auto; align-items: center; }
 .pending-item p { color: #475569; }
 .pending-item a { color: #1e3a5f; font-weight: 700; }
@@ -73,5 +85,5 @@ th, td { padding: 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
 .alert-banner strong { font-size: .95rem; text-transform: uppercase; letter-spacing: .04em; }
 .alert-banner p { margin: 0; }
 @media(max-width:1100px) { .summary-inline { grid-template-columns: repeat(2,minmax(0,1fr)); } }
-@media(max-width:720px) { .guided-choices, .operation-sequence { grid-template-columns: 1fr 1fr; } .guided-choices button:nth-child(2) { border-right: 0; } .guided-choices button:nth-child(3) { border-top: 1px solid #c6d9d4; grid-column: 1 / -1; } .operation-sequence { gap: 14px; } .operation-sequence li:not(:last-child)::after { display: none; } }
-@media(max-width:600px) { .card { padding: 16px; } .guided-copy, .guided-result, .operation-sequence { padding-left: 16px; padding-right: 16px; } .guided-result { align-items: start; flex-direction: column; } .guided-action { width: 100%; } .two-cols, .summary-grid, .guided-choices, .operation-sequence { grid-template-columns: 1fr; } .guided-choices button, .guided-choices button:nth-child(2), .guided-choices button:nth-child(3) { border-right: 0; border-bottom: 1px solid #c6d9d4; grid-column: auto; } .guided-choices button:last-child { border-bottom: 0; } .summary-inline > div { padding: 12px 6px; } .summary-inline strong { font-size: 1.1rem; } }
+@media(max-width:720px) { .guided-choices, .operation-sequence, .investigation-options { grid-template-columns: 1fr 1fr; } .guided-choices button:nth-child(2) { border-right: 0; } .guided-choices button:nth-child(3) { border-top: 1px solid #c6d9d4; grid-column: 1 / -1; } .operation-sequence { gap: 14px; } .operation-sequence li:not(:last-child)::after { display: none; } }
+@media(max-width:600px) { .card { padding: 16px; } .guided-copy, .guided-result, .operation-sequence, .investigation-question, .investigation-next { padding-left: 16px; padding-right: 16px; } .guided-result, .investigation-next { align-items: start; flex-direction: column; } .guided-action { width: 100%; } .two-cols, .summary-grid, .guided-choices, .operation-sequence, .investigation-options { grid-template-columns: 1fr; } .guided-choices button, .guided-choices button:nth-child(2), .guided-choices button:nth-child(3) { border-right: 0; border-bottom: 1px solid #c6d9d4; grid-column: auto; } .guided-choices button:last-child { border-bottom: 0; } .summary-inline > div { padding: 12px 6px; } .summary-inline strong { font-size: 1.1rem; } .exception-head { align-items: start; flex-direction: column; } }
