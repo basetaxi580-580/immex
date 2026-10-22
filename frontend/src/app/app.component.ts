@@ -379,8 +379,14 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
         <section *ngSwitchCase="'peps'" class="card module-card" id="peps-section">
           <div class="card-head">
             <h2>PEPS</h2>
-            <span>Simulador y ejecución</span>
+            <span>Revisa la asignación antes de afectar saldos</span>
           </div>
+          <ol class="decision-ladder" aria-label="Secuencia de descarga PEPS">
+            <li [class.is-current]="pepsStage === 1" [class.is-ready]="pepsStage > 1"><span>1</span><div><strong>Definir</strong><small>Material, cantidad y motivo</small></div></li>
+            <li [class.is-current]="pepsStage === 2" [class.is-ready]="pepsStage > 2"><span>2</span><div><strong>Simular</strong><small>Calcular sin modificar saldos</small></div></li>
+            <li [class.is-current]="pepsStage === 3" [class.is-ready]="pepsStage > 3"><span>3</span><div><strong>Revisar</strong><small>Validar pedimentos y cantidades</small></div></li>
+            <li [class.is-current]="pepsStage === 4"><span>4</span><div><strong>Aplicar</strong><small>Registrar el movimiento auditado</small></div></li>
+          </ol>
           <form class="form compact-form" (ngSubmit)="simulatePeps()">
             <label>
               <span>Material</span>
@@ -401,12 +407,15 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
               <textarea [(ngModel)]="pepsForm.reason" name="pepsReason" rows="2" placeholder="Salida para producción" required></textarea>
             </label>
             <div class="actions">
-              <button class="primary" type="submit">Simular</button>
-              <button class="ghost" type="button" (click)="applyPeps()" [disabled]="!pepsPreview">Aplicar</button>
+              <button class="primary" type="submit">Generar simulación</button>
+              <button class="ghost" type="button" (click)="applyPeps()" [disabled]="!pepsPreview">Confirmar y aplicar</button>
               <button class="ghost" type="button" (click)="revertPeps()" [disabled]="!pepsApplied">Revertir</button>
             </div>
           </form>
           <div class="close-report-box" *ngIf="pepsPreview; else pepsEmpty">
+            <p class="peps-review" [class.is-warning]="!pepsPreview.completed">
+              {{ pepsPreview.completed ? 'La simulación cubre la cantidad solicitada. Revisa la asignación antes de confirmarla.' : 'La simulación quedó parcial. Revisa el saldo disponible antes de aplicar.' }}
+            </p>
             <p><strong>Material:</strong> {{ pepsPreview.material }}</p>
             <p><strong>Solicitado:</strong> {{ pepsPreview.requestedQuantity }}</p>
             <p><strong>Procesado:</strong> {{ pepsPreview.processedQuantity }}</p>
@@ -792,6 +801,12 @@ export class AppComponent implements OnInit, OnDestroy {
     if (this.guidanceIntent === 'balance') return 'Revisar saldos y PEPS';
     if (this.guidanceIntent === 'close') return 'Abrir cierre mensual';
     return 'Ver vencimientos';
+  }
+
+  get pepsStage(): number {
+    if (this.pepsApplied) return 4;
+    if (this.pepsPreview) return 3;
+    return 1;
   }
 
   get investigationNextTitle(): string {

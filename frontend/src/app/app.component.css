@@ -26,6 +26,18 @@ button.guided-action { flex: 0 0 auto; background: #0f766e; border-color: #0f766
 .operation-sequence strong, .operation-sequence small { display: block; overflow-wrap: anywhere; }
 .operation-sequence strong { font-size: .88rem; }
 .operation-sequence small { margin-top: 2px; font-size: .77rem; }
+.decision-ladder { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0 0 20px; padding: 0; list-style: none; }
+.decision-ladder li { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 10px; border-top: 2px solid #cbd5e1; color: #64748b; }
+.decision-ladder li > span { display: grid; width: 25px; height: 25px; flex: 0 0 auto; place-items: center; border-radius: 50%; background: #e2e8f0; font-size: .78rem; font-weight: 700; }
+.decision-ladder strong, .decision-ladder small { display: block; }
+.decision-ladder strong { color: #334155; font-size: .85rem; }
+.decision-ladder small { margin-top: 2px; font-size: .73rem; line-height: 1.25; }
+.decision-ladder li.is-ready, .decision-ladder li.is-current { border-color: #0f766e; }
+.decision-ladder li.is-ready > span { background: #0f766e; color: #fff; }
+.decision-ladder li.is-current { background: #e1f0ec; }
+.decision-ladder li.is-current > span { background: #d4a73a; color: #173b42; }
+.peps-review { padding: 10px 12px; border-left: 3px solid #0f766e; background: #e1f0ec; color: #173b42 !important; }
+.peps-review.is-warning { border-color: #d4a73a; background: #fff5d9; }
 .card { min-width: 0; padding: 20px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; }
 h1, h2, p { margin: 0; }
 h1 { font-size: 1.5rem; font-weight: 700; }
@@ -85,5 +97,5 @@ th, td { padding: 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
 .alert-banner strong { font-size: .95rem; text-transform: uppercase; letter-spacing: .04em; }
 .alert-banner p { margin: 0; }
 @media(max-width:1100px) { .summary-inline { grid-template-columns: repeat(2,minmax(0,1fr)); } }
-@media(max-width:720px) { .guided-choices, .operation-sequence, .investigation-options { grid-template-columns: 1fr 1fr; } .guided-choices button:nth-child(2) { border-right: 0; } .guided-choices button:nth-child(3) { border-top: 1px solid #c6d9d4; grid-column: 1 / -1; } .operation-sequence { gap: 14px; } .operation-sequence li:not(:last-child)::after { display: none; } }
-@media(max-width:600px) { .card { padding: 16px; } .guided-copy, .guided-result, .operation-sequence, .investigation-question, .investigation-next { padding-left: 16px; padding-right: 16px; } .guided-result, .investigation-next { align-items: start; flex-direction: column; } .guided-action { width: 100%; } .two-cols, .summary-grid, .guided-choices, .operation-sequence, .investigation-options { grid-template-columns: 1fr; } .guided-choices button, .guided-choices button:nth-child(2), .guided-choices button:nth-child(3) { border-right: 0; border-bottom: 1px solid #c6d9d4; grid-column: auto; } .guided-choices button:last-child { border-bottom: 0; } .summary-inline > div { padding: 12px 6px; } .summary-inline strong { font-size: 1.1rem; } .exception-head { align-items: start; flex-direction: column; } }
+@media(max-width:720px) { .guided-choices, .operation-sequence, .investigation-options, .decision-ladder { grid-template-columns: 1fr 1fr; } .guided-choices button:nth-child(2) { border-right: 0; } .guided-choices button:nth-child(3) { border-top: 1px solid #c6d9d4; grid-column: 1 / -1; } .operation-sequence { gap: 14px; } .operation-sequence li:not(:last-child)::after { display: none; } }
+@media(max-width:600px) { .card { padding: 16px; } .guided-copy, .guided-result, .operation-sequence, .investigation-question, .investigation-next { padding-left: 16px; padding-right: 16px; } .guided-result, .investigation-next { align-items: start; flex-direction: column; } .guided-action { width: 100%; } .two-cols, .summary-grid, .guided-choices, .operation-sequence, .investigation-options, .decision-ladder { grid-template-columns: 1fr; } .guided-choices button, .guided-choices button:nth-child(2), .guided-choices button:nth-child(3) { border-right: 0; border-bottom: 1px solid #c6d9d4; grid-column: auto; } .guided-choices button:last-child { border-bottom: 0; } .summary-inline > div { padding: 12px 6px; } .summary-inline strong { font-size: 1.1rem; } .exception-head { align-items: start; flex-direction: column; } }
