@@ -45,7 +45,7 @@ type SidebarGroup = {
           </button>
         </div>
 
-        <div class="company-selector card">
+        <div class="company-selector">
           <label>
             <span>Razón social / RFC</span>
             <select [(ngModel)]="selectedRazonSocial" name="selectedRazonSocial" (ngModelChange)="changeCompanyFilter($event)">
@@ -56,7 +56,7 @@ type SidebarGroup = {
           <small>{{ selectedRfcLabel }}</small>
         </div>
 
-        <div class="company-selector card">
+        <div class="company-selector">
           <label>
             <span>Rol actual</span>
             <select [(ngModel)]="selectedRole" name="selectedRole" (ngModelChange)="changeRole($event)">
@@ -64,7 +64,7 @@ type SidebarGroup = {
               <option value="Consulta">Consulta</option>
             </select>
           </label>
-          <small>{{ selectedRole }}</small>
+          <small>{{ selectedRole === 'Consulta' ? 'Acceso de solo lectura' : 'Acceso de edición y operación' }}</small>
         </div>
 
         <nav class="menu" aria-label="Navegación principal">
@@ -198,7 +198,7 @@ export class AppShellComponent implements OnInit {
   }
 
   protected get selectedRfcLabel(): string {
-    if (this.selectedRazonSocial === 'all') return 'Vista consolidada';
+    if (this.selectedRazonSocial === 'all') return `${this.razonSociales.length} empresas incluidas`;
     return this.razonSociales.find((option) => option.nombre === this.selectedRazonSocial)?.rfc ?? '—';
   }
 
