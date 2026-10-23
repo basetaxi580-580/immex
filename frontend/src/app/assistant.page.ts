@@ -10,8 +10,8 @@ type ImportPartida = {
   material: string;
   unidad: string;
   regimenAduanero: string;
-  cantidad: number;
-  valorUnitarioMxn: number;
+  cantidad: number | null;
+  valorUnitarioMxn: number | null;
 };
 
 type ImportDraft = {
@@ -31,71 +31,75 @@ type ImportDraft = {
       <header class="demo-heading">
         <div class="heading-copy">
           <a class="back-link" routerLink="/inventory">Inventarios / Pedimentos</a>
-          <h1>Del pedimento a tu inventario</h1>
-          <p>Prueba cómo el copiloto identifica los datos y los prepara para tu captura.</p>
+          <h1>De esta factura a tu captura IMMEX</h1>
+          <p>Revisemos qué datos sí ayudan a llenar Inventarios / Pedimentos y cuáles necesitan confirmación.</p>
         </div>
         <span class="demo-badge"><fa-icon [icon]="faWandMagicSparkles"></fa-icon> Demo interactiva</span>
       </header>
 
       <section class="demo-intro">
         <div class="intro-symbol"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></div>
-        <div class="intro-copy"><strong>Menos captura manual. Más tiempo para validar.</strong><span>Simularemos la lectura de un pedimento con una partida de importación temporal.</span></div>
-        <button class="analyze-button" type="button" (click)="analyzeSample()" [disabled]="analyzing"><fa-icon [icon]="analyzing ? faRotate : faWandMagicSparkles" [class.spin]="analyzing"></fa-icon>{{ analyzing ? 'Leyendo ejemplo…' : analyzed ? 'Volver a simular' : 'Simular lectura' }}</button>
+        <div class="intro-copy"><strong>Empezamos con la factura que compartiste.</strong><span>Los datos encontrados se separan de los datos aduaneros que este documento no contiene.</span></div>
+        <button class="analyze-button" type="button" (click)="analyzeSample()" [disabled]="analyzing"><fa-icon [icon]="analyzing ? faRotate : faWandMagicSparkles" [class.spin]="analyzing"></fa-icon>{{ analyzing ? 'Revisando factura…' : analyzed ? 'Revisar de nuevo' : 'Analizar factura' }}</button>
       </section>
 
       <section class="exercise-layout">
         <aside class="source-pane">
-          <div class="pane-heading"><div><span class="step-label">DOCUMENTO DE EJEMPLO</span><h2>Pedimento de importación</h2></div><span class="pdf-chip">PDF</span></div>
+          <div class="pane-heading"><div><span class="step-label">FACTURA COMERCIAL</span><h2>Documento de importación</h2></div><span class="pdf-chip">PDF</span></div>
           <div class="paper-wrap">
             <article class="paper-preview" [class.scanned]="analyzed">
-              <div class="paper-top"><span>ADUANA MÉXICO</span><span>FORMATO DEMO</span></div>
-              <div class="paper-caption">PEDIMENTO</div>
-              <div class="paper-number" [class.marked]="analyzed">24 48 3021 9001234</div>
-              <div class="paper-meta"><span>FECHA DE ENTRADA</span><b>21 OCT 2026</b></div>
+              <div class="paper-top"><span>FACTURA COMERCIAL</span><span>DOCUMENTO PROPORCIONADO</span></div>
+              <div class="paper-caption">FACTURA N°</div>
+              <div class="paper-number" [class.marked]="analyzed">2023-1234</div>
+              <div class="paper-row"><span>N° DE ORDEN</span><b>PED-12345</b></div>
+              <div class="paper-meta"><span>ORIGEN</span><b>MÉXICO · PUERTO DE VERACRUZ</b></div>
               <div class="paper-rule"></div>
-              <div class="paper-caption">DATOS DEL IMPORTADOR</div>
-              <div class="paper-row"><span>RFC</span><b>ASN9403159K2</b></div>
-              <div class="paper-row"><span>RÉGIMEN</span><b>IN — TEMPORAL IMMEX</b></div>
+              <div class="paper-caption">CONSIGNATARIO</div>
+              <div class="paper-row"><b>MADRID, ESPAÑA</b></div>
               <div class="paper-rule"></div>
-              <div class="paper-caption">PARTIDAS</div>
-              <div class="paper-table-head"><span>FRACCIÓN / DESCRIPCIÓN</span><span>CANT.</span></div>
-              <div class="paper-item" [class.marked]="analyzed"><span>Resina ABS natural<br><small>Grado inyección</small></span><b>1,200 kg</b></div>
-              <div class="paper-row value-row"><span>VALOR UNITARIO</span><b>3.20 MXN</b></div>
-              <div class="paper-seal">EJEMPLO<br>ILUSTRATIVO</div>
+              <div class="paper-caption">DESCRIPCIÓN DE MERCANCÍA</div>
+              <div class="paper-item" [class.marked]="analyzed"><span>Chiles jalapeños frescos<br><small>Para alimentación</small></span><b>2,880</b></div>
+              <div class="paper-row"><span>PESO NETO</span><b>630 kg</b></div>
+              <div class="paper-row"><span>PESO BRUTO</span><b class="paper-warning">200 kg · revisar</b></div>
+              <div class="paper-row value-row"><span>PRECIO UNITARIO</span><b>$20.90 · moneda no indicada</b></div>
+              <div class="paper-row"><span>TOTAL FACTURA</span><b>$77,896.77 · moneda no indicada</b></div>
+              <div class="paper-seal">DATOS DE<br>PRUEBA</div>
             </article>
             <div class="scan-line" *ngIf="analyzing"></div>
           </div>
-          <div class="document-meta"><span class="file-icon"><fa-icon [icon]="faFileLines"></fa-icon></span><div><b>pedimento_ejemplo.pdf</b><small>1 página · Escenario de práctica</small></div><fa-icon class="file-check" *ngIf="analyzed" [icon]="faCheck"></fa-icon></div>
-          <div class="source-note"><fa-icon [icon]="faFileInvoice"></fa-icon><span>Este documento es una muestra para recorrer el ejercicio; no corresponde a una operación real.</span></div>
+          <div class="document-meta"><span class="file-icon"><fa-icon [icon]="faFileLines"></fa-icon></span><div><b>Factura comercial proporcionada</b><small>1 página · Datos resumidos para la demo</small></div><fa-icon class="file-check" *ngIf="analyzed" [icon]="faCheck"></fa-icon></div>
+          <div class="source-note invoice-route-warning"><fa-icon [icon]="faFileInvoice"></fa-icon><span>La ruta México → España sugiere una exportación. Confirma que este documento corresponde a una importación IMMEX antes de registrarlo.</span></div>
+          <div class="invoice-issues" *ngIf="analyzed"><strong>Revisar antes de usar</strong><span>PED-12345 aparece como número de orden, no como pedimento.</span><span>El peso bruto (200 kg) aparece menor que el neto (630 kg).</span><span>La factura usa “$”, pero no indica la moneda.</span></div>
         </aside>
 
         <section class="capture-pane">
-          <div class="pane-heading form-heading"><div><span class="step-label">CAPTURA SUGERIDA</span><h2>Datos de importación</h2></div><span class="field-count" [class.ready]="analyzed">{{ analyzed ? '7 campos sugeridos' : 'Esperando lectura' }}</span></div>
-          <div class="waiting-state" *ngIf="!analyzed && !analyzing"><div class="waiting-icon"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></div><strong>Tu captura aparecerá aquí</strong><span>Inicia la simulación para ver cómo el copiloto llena los datos del pedimento.</span></div>
-          <div class="reading-state" *ngIf="analyzing"><span class="reading-orb"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></span><strong>Revisando el documento</strong><span>Identificando importador, fechas y partidas…</span><div class="reading-track"><i></i></div></div>
+          <div class="pane-heading form-heading"><div><span class="step-label">DATOS PARA INVENTARIOS / PEDIMENTOS</span><h2>Revisa antes de transferir</h2></div><span class="field-count" [class.ready]="analyzed">{{ analyzed ? '2 datos precargables' : 'Lista para revisar' }}</span></div>
+          <div class="waiting-state" *ngIf="!analyzed && !analyzing"><div class="waiting-icon"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></div><strong>Revisemos esta factura</strong><span>La demo identificará la mercancía y la cantidad, y marcará los campos que requieren información aduanera.</span></div>
+          <div class="reading-state" *ngIf="analyzing"><span class="reading-orb"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></span><strong>Revisando la factura</strong><span>Separando datos comerciales de datos del pedimento…</span><div class="reading-track"><i></i></div></div>
           <div class="suggested-form" *ngIf="analyzed">
-            <div class="suggestion-banner"><fa-icon [icon]="faCheck"></fa-icon><span><b>Datos detectados</b> Revisa las sugerencias antes de usarlas.</span><span class="confidence">Coincidencia alta</span></div>
+            <div class="document-warning"><span class="warning-mark">!</span><span><b>Posible exportación, no importación</b> La factura indica origen México y consignatario en España. Confirma la operación antes de continuar.</span></div>
+            <div class="suggestion-banner"><fa-icon [icon]="faCheck"></fa-icon><span><b>2 datos comerciales disponibles</b> Los campos faltantes quedan vacíos.</span></div>
             <div class="field-grid">
-              <label class="demo-field"><span>Número de pedimento <small>Detectado</small></span><input [(ngModel)]="draft.numeroPedimento" name="demoNumero" /></label>
-              <label class="demo-field"><span>Fecha de entrada <small>Detectado</small></span><input [(ngModel)]="draft.fecha" name="demoFecha" type="date" /></label>
-              <label class="demo-field full-field"><span>Razón social <small>Relacionada por RFC</small></span><input [(ngModel)]="draft.razonSocial" name="demoRazon" /></label>
-              <label class="demo-field"><span>RFC <small>Detectado</small></span><input [(ngModel)]="draft.rfc" name="demoRfc" /></label>
+              <label class="demo-field"><span>Número de pedimento <small>No aparece</small></span><input [(ngModel)]="draft.numeroPedimento" name="demoNumero" placeholder="Captura el pedimento" /></label>
+              <label class="demo-field"><span>Fecha de entrada <small>No aparece</small></span><input [(ngModel)]="draft.fecha" name="demoFecha" type="date" /></label>
+              <label class="demo-field"><span>Razón social IMMEX <small>Selecciona tu empresa</small></span><select [(ngModel)]="draft.razonSocial" name="demoRazon" (ngModelChange)="setCompany($event)"><option value="">Selecciona una empresa</option><option *ngFor="let company of companyOptions" [value]="company.nombre">{{ company.nombre }}</option></select></label>
+              <label class="demo-field"><span>RFC <small>Se completa al elegir</small></span><input [(ngModel)]="draft.rfc" name="demoRfc" placeholder="RFC de la empresa IMMEX" /></label>
             </div>
-            <div class="partida-divider"><span>PARTIDA 01</span><i></i><b>Importación temporal</b></div>
+            <div class="partida-divider"><span>LÍNEA DE FACTURA · 01</span><i></i><b>Consecutivo sugerido · régimen por confirmar</b></div>
             <div class="field-grid partida-fields">
-              <label class="demo-field full-field"><span>Material <small>Descripción detectada</small></span><input [(ngModel)]="draft.partidas[0].material" name="demoMaterial" /></label>
-              <label class="demo-field"><span>Unidad</span><input [(ngModel)]="draft.partidas[0].unidad" name="demoUnidad" /></label>
-              <label class="demo-field"><span>Régimen aduanero</span><input [(ngModel)]="draft.partidas[0].regimenAduanero" name="demoRegimen" /></label>
-              <label class="demo-field"><span>Cantidad</span><input [(ngModel)]="draft.partidas[0].cantidad" name="demoCantidad" type="number" min="1" /></label>
-              <label class="demo-field"><span>Valor unitario · MXN</span><input [(ngModel)]="draft.partidas[0].valorUnitarioMxn" name="demoValor" type="number" step="0.01" min="0.01" /></label>
+              <label class="demo-field full-field"><span>Material <small class="confirmed">Descripción de factura</small></span><input [(ngModel)]="draft.partidas[0].material" name="demoMaterial" /></label>
+              <label class="demo-field"><span>Unidad <small>Por confirmar</small></span><input [(ngModel)]="draft.partidas[0].unidad" name="demoUnidad" placeholder="La factura no la aclara" /></label>
+              <label class="demo-field"><span>Régimen aduanero <small>No aparece</small></span><input [(ngModel)]="draft.partidas[0].regimenAduanero" name="demoRegimen" placeholder="Confirma el régimen" /></label>
+              <label class="demo-field"><span>Cantidad facturada <small>Unidad por validar</small></span><input [(ngModel)]="draft.partidas[0].cantidad" name="demoCantidad" type="number" min="1" /></label>
+              <label class="demo-field"><span>Valor unitario · MXN <small>Moneda incierta</small></span><input [(ngModel)]="draft.partidas[0].valorUnitarioMxn" name="demoValor" type="number" step="0.01" min="0.01" placeholder="No se precargó" /></label>
             </div>
-            <div class="capture-total"><span>Valor estimado de la partida</span><b>{{ lineTotal | currency:'MXN':'symbol':'1.2-2' }}</b></div>
+            <div class="invoice-value-note"><b>En la factura:</b> unitario $20.90 · subtotal $60,192.00 · cargos $17,704.77 · total $77,896.77. La moneda no está especificada, por eso no se copió al campo MXN.</div>
           </div>
-          <footer class="capture-footer"><div class="review-reminder"><fa-icon [icon]="faCheck"></fa-icon><span>El equipo revisa y confirma antes de guardar.</span></div><button type="button" class="continue-button" [disabled]="!analyzed" (click)="continueToInventory()">Llevar al formulario IMMEX <fa-icon [icon]="faArrowRight"></fa-icon></button></footer>
+          <footer class="capture-footer"><div class="review-reminder"><fa-icon [icon]="faCheck"></fa-icon><span>Solo se transfiere lo encontrado. Nada se guarda automáticamente.</span></div><button type="button" class="continue-button" [disabled]="!analyzed" (click)="continueToInventory()">Llevar datos disponibles al registro <fa-icon [icon]="faArrowRight"></fa-icon></button></footer>
         </section>
       </section>
 
-      <footer class="demo-disclaimer"><fa-icon [icon]="faWandMagicSparkles"></fa-icon><span>Demostración de asistencia de captura. Los datos son de ejemplo; la plataforma no los guardará hasta que los revises y confirmes en Inventarios / Pedimentos.</span></footer>
+      <footer class="demo-disclaimer"><fa-icon [icon]="faWandMagicSparkles"></fa-icon><span>Esta demo resume el archivo proporcionado; no ejecuta OCR sobre otros documentos. Confirma los datos y completa el pedimento oficial antes de guardar una operación.</span></footer>
     </main>
   `,
   styleUrl: './assistant.page.css',
@@ -112,10 +116,13 @@ export class AssistantPageComponent {
   protected analyzing = false;
   protected analyzed = false;
   protected draft = this.exampleDraft();
+  protected readonly companyOptions = [
+    { nombre: 'Aerosistemas del Norte, S.A. de C.V.', rfc: 'ASN9403159K2' },
+    { nombre: 'Componentes Industriales del Bajío, S.A. de C.V.', rfc: 'CIB0209187Q4' },
+  ];
 
-  protected get lineTotal(): number {
-    const line = this.draft.partidas[0];
-    return Number(line?.cantidad || 0) * Number(line?.valorUnitarioMxn || 0);
+  protected setCompany(razonSocial: string): void {
+    this.draft.rfc = this.companyOptions.find((company) => company.nombre === razonSocial)?.rfc ?? '';
   }
 
   protected analyzeSample(): void {
@@ -136,17 +143,17 @@ export class AssistantPageComponent {
 
   private exampleDraft(): ImportDraft {
     return {
-      numeroPedimento: '24 48 3021 9001234',
-      fecha: '2026-10-21',
-      razonSocial: 'Aerosistemas del Norte, S.A. de C.V.',
-      rfc: 'ASN9403159K2',
+      numeroPedimento: '',
+      fecha: '',
+      razonSocial: '',
+      rfc: '',
       partidas: [{
         partida: '01',
-        material: 'Resina ABS natural · grado inyección',
-        unidad: 'kg',
-        regimenAduanero: 'IMMEX temporal',
-        cantidad: 1200,
-        valorUnitarioMxn: 3.2,
+        material: 'Chiles jalapeños frescos',
+        unidad: '',
+        regimenAduanero: '',
+        cantidad: 2880,
+        valorUnitarioMxn: null,
       }],
     };
   }

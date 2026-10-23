@@ -11,7 +11,7 @@ type ImportFormModel = {
   fecha: string;
   razonSocial: string;
   rfc: string;
-  partidas: Array<{ partida: string; material: string; unidad: string; regimenAduanero: string; cantidad: number; valorUnitarioMxn: number }>;
+  partidas: Array<{ partida: string; material: string; unidad: string; regimenAduanero: string; cantidad: number | null; valorUnitarioMxn: number | null }>;
 };
 
 @Component({
@@ -439,7 +439,7 @@ export class InventoryPageComponent implements OnInit {
     { nombre: 'Aerosistemas del Norte, S.A. de C.V.', rfc: 'ASN9403159K2' },
     { nombre: 'Componentes Industriales del Bajío, S.A. de C.V.', rfc: 'CIB0209187Q4' },
   ];
-  importFormModel = this.emptyImportForm();
+  importFormModel: ImportFormModel = this.emptyImportForm();
   form: ImmexRecord = this.emptyForm();
 
   ngOnInit(): void {
