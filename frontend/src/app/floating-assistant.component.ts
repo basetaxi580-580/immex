@@ -24,7 +24,6 @@ type ChatMessage = { role: 'assistant' | 'user'; text: string };
           <div class="assistant-suggestions" *ngIf="messages.length === 0"><button type="button" (click)="ask('¿Qué puedo hacer en esta plataforma?')">¿Qué puedo hacer aquí?</button><button type="button" (click)="ask('¿Cómo registro un pedimento?')">¿Cómo registro un pedimento?</button></div>
         </div>
         <form class="assistant-composer" (ngSubmit)="send()"><label class="sr-only" for="floating-assistant-input">Escribe tu pregunta</label><input id="floating-assistant-input" name="floatingAssistantInput" [(ngModel)]="input" placeholder="Escribe tu pregunta…" autocomplete="off" /><button type="submit" [disabled]="!input.trim()" aria-label="Enviar mensaje"><fa-icon [icon]="faPaperPlane"></fa-icon></button></form>
-        <p class="assistant-disclaimer">Respuestas simuladas · sin conexión a un modelo de IA</p>
       </section>
       <button class="assistant-launcher" type="button" (click)="toggle()" [attr.aria-expanded]="isOpen" [attr.aria-label]="isOpen ? 'Ocultar asistente' : 'Abrir asistente IMMEX'" [attr.title]="isOpen ? 'Ocultar asistente' : 'Asistente IMMEX'"><fa-icon [icon]="isOpen ? faXmark : faWandMagicSparkles"></fa-icon><span *ngIf="!isOpen">Asistente</span></button>
     </aside>
