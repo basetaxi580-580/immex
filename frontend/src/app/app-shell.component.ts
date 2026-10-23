@@ -150,10 +150,11 @@ export class AppShellComponent implements OnInit {
   protected selectedRazonSocial = this.service.getCompanyFilter();
   protected selectedRole = this.roleService.selectedRole;
   protected razonSociales: { nombre: string; rfc: string }[] = [];
-  protected readonly expandedGroups = new Set<string>(['Dashboard', 'Importaciones', 'Inventario', 'Producción', 'Exportaciones', 'Descargos', 'Alertas', 'Conciliación', 'Reportes', 'Configuración']);
+  protected readonly expandedGroups = new Set<string>(['Dashboard', 'Configuración', 'Importaciones', 'Inventario', 'Producción', 'Exportaciones', 'Descargos', 'Alertas', 'Reportes', 'Cierre', 'Auditoría']);
 
   protected readonly navGroups: SidebarGroup[] = [
     { heading: 'Dashboard', icon: faChartLine, items: [{ label: 'Dashboard', description: 'Resumen ejecutivo y métricas clave', route: '/dashboard', icon: faChartLine, exact: true }] },
+    { heading: 'Configuración', icon: faGear, items: [{ label: 'Configuración', description: 'Razón social y rol actual', route: '/dashboard', icon: faGear, exact: true }] },
     { heading: 'Importaciones', icon: faBoxesStacked, items: [
       { label: 'Inventario / Pedimentos', description: 'Altas, filtros y edición', route: '/inventory', icon: faBoxesStacked, exact: true },
       { label: 'Captura de movimiento', description: 'Alta y edición del registro', route: '/dashboard/movement', icon: faClipboardList, exact: true },
@@ -169,7 +170,6 @@ export class AppShellComponent implements OnInit {
     ] },
     { heading: 'Exportaciones', icon: faTruckRampBox, items: [
       { label: 'Exportación', description: 'Salida y registro documental', route: '/dashboard/flow', icon: faTruckRampBox, exact: true },
-      { label: 'Cierre mensual', description: 'Reporte listo para revisión', route: '/dashboard/close', icon: faFileCircleCheck, exact: true },
     ] },
     { heading: 'Descargos', icon: faClockRotateLeft, items: [
       { label: 'PEPS', description: 'Consumo simulado y reversión', route: '/dashboard/peps', icon: faClockRotateLeft, exact: true },
@@ -177,15 +177,15 @@ export class AppShellComponent implements OnInit {
     { heading: 'Alertas', icon: faTriangleExclamation, items: [
       { label: 'Excepciones y riesgo', description: 'Alertas y materiales críticos', route: '/dashboard/risk', icon: faTriangleExclamation, exact: true },
     ] },
-    { heading: 'Conciliación', icon: faUserShield, items: [
-      { label: 'Trazabilidad', description: 'Quién, cuándo y por qué', route: '/dashboard/audit', icon: faUserShield, exact: true },
-      { label: 'Conciliación', description: 'Revisión documental y control', route: '/dashboard/audit', icon: faUserShield, exact: true },
-    ] },
     { heading: 'Reportes', icon: faFileCircleCheck, items: [
       { label: 'Anexo 24', description: 'Excel por lote', route: '/dashboard/close', icon: faFileCircleCheck, exact: true },
+    ] },
+    { heading: 'Cierre', icon: faFileCircleCheck, items: [
+      { label: 'Cierre mensual', description: 'Reporte listo para revisión', route: '/dashboard/close', icon: faFileCircleCheck, exact: true },
+    ] },
+    { heading: 'Auditoría', icon: faUserShield, items: [
       { label: 'Auditoría', description: 'Historial de cambios', route: '/dashboard/audit', icon: faUserShield, exact: true },
     ] },
-    { heading: 'Configuración', icon: faGear, items: [{ label: 'Configuración', description: 'Razón social y rol actual', route: '/dashboard', icon: faGear, exact: true }] },
   ];
 
   constructor(private readonly router: Router) {}
