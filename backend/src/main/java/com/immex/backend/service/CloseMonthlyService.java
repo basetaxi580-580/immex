@@ -1,6 +1,6 @@
 package com.immex.backend.service;
 
-import com.immex.backend.model.CloseMonthlyChangeEntry;
+
 import com.immex.backend.model.CloseMonthlyHistoryItem;
 import com.immex.backend.model.CloseMonthlySignRequest;
 import com.immex.backend.model.CloseMonthlyStateResponse;
@@ -119,7 +119,7 @@ public class CloseMonthlyService {
     List<Document> stepsDocs = asDocumentList(doc.get("steps"));
     List<Document> historyDocs = asDocumentList(doc.get("history"));
     List<CloseWorkflowStep> steps = stepsDocs.stream().map(this::toStep).toList();
-    List<CloseMonthlyChangeEntry> history = historyDocs.stream().map(this::toChangeEntry).toList();
+    List<CloseMonthlyHistoryItem> history = historyDocs.stream().map(this::toHistoryItem).toList();
     boolean canClose = steps.stream().allMatch(step -> "Completada".equalsIgnoreCase(step.estado())) && !hasCriticalIssues(doc);
     int pendingCount = (int) steps.stream().filter(step -> !"Completada".equalsIgnoreCase(step.estado())).count();
     int progressPct = steps.isEmpty() ? 0 : (int) Math.round((steps.size() - pendingCount) * 100.0 / steps.size());
@@ -228,18 +228,6 @@ public class CloseMonthlyService {
 
   private CloseMonthlyHistoryItem toHistoryItem(Document doc) {
     return new CloseMonthlyHistoryItem(
-        stringValue(doc.get("stepKey")),
-        stringValue(doc.get("stepLabel")),
-        stringValue(doc.get("actor")),
-        doc.get("changedAt") == null ? null : Instant.parse(String.valueOf(doc.get("changedAt"))),
-        stringValue(doc.get("field")),
-        stringValue(doc.get("oldValue")),
-        stringValue(doc.get("newValue")),
-        stringValue(doc.get("reason")));
-  }
-
-  private CloseMonthlyChangeEntry toChangeEntry(Document doc) {
-    return new CloseMonthlyChangeEntry(
         stringValue(doc.get("stepKey")),
         stringValue(doc.get("stepLabel")),
         stringValue(doc.get("actor")),

@@ -20,6 +20,7 @@ export class ImmexService {
   private readonly collectionsUrl = '/api/admin/collections';
   private readonly importPedimentoUrl = '/api/pedimentos/import';
   private readonly produccionMensualUrl = '/api/produccion/mensual';
+  private readonly produccionProductosUrl = '/api/produccion/productos';
   private readonly anexo24Url = '/api/reportes/anexo24';
   private readonly razonesSocialesUrl = '/api/razones-sociales';
   private readonly assistantUrl = '/api/records/assistant';
@@ -95,6 +96,10 @@ export class ImmexService {
     partidas: Array<{ partida: string; material: string; unidad: string; regimenAduanero: string; cantidad: number; valorUnitarioMxn: number }>;
   }): Observable<any> {
     return this.http.post<any>(this.importPedimentoUrl, payload);
+  }
+
+  productionProducts(): Observable<string[]> {
+    return this.http.get<string[]>(this.produccionProductosUrl);
   }
 
   productionPreview(payload: ProduccionMensualRequest): Observable<ProduccionMensualResult> {

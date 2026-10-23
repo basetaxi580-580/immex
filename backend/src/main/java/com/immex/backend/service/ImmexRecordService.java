@@ -9,6 +9,7 @@ import com.immex.backend.model.ImmexRecordRequest;
 import com.immex.backend.model.PepsConsumptionRequest;
 import com.immex.backend.model.PepsOperationResult;
 import com.immex.backend.repository.ImmexRecordRepository;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -26,12 +27,14 @@ public class ImmexRecordService {
   private final AuditEventService auditEventService;
   private final LoteMovimientoService loteMovimientoService;
   private final InventoryDashboardService inventoryDashboardService;
+  private final MongoTemplate mongoTemplate;
 
-  public ImmexRecordService(ImmexRecordRepository repository, AuditEventService auditEventService, LoteMovimientoService loteMovimientoService, InventoryDashboardService inventoryDashboardService) {
+  public ImmexRecordService(ImmexRecordRepository repository, AuditEventService auditEventService, LoteMovimientoService loteMovimientoService, InventoryDashboardService inventoryDashboardService, MongoTemplate mongoTemplate) {
     this.repository = repository;
     this.auditEventService = auditEventService;
     this.loteMovimientoService = loteMovimientoService;
     this.inventoryDashboardService = inventoryDashboardService;
+    this.mongoTemplate = mongoTemplate;
   }
 
   public List<ImmexRecord> findAll(String razonSocial) {
@@ -72,6 +75,7 @@ public class ImmexRecordService {
         now,
         now);
     ImmexRecord saved = repository.save(record);
+    syncRazonSocial(saved.getRazonSocial(), saved.getRfc());
     auditEventService.record(
         "ImmexRecord",
         saved.getId(),
@@ -106,6 +110,7 @@ public class ImmexRecordService {
     existing.setAuditor(trimToNull(request.getAuditor()));
     existing.setUpdatedAt(Instant.now());
     ImmexRecord saved = repository.save(existing);
+    syncRazonSocial(saved.getRazonSocial(), saved.getRfc());
     auditEventService.record(
         "ImmexRecord",
         saved.getId(),
@@ -361,6 +366,28 @@ public class ImmexRecordService {
     if (a == null && b == null) return true;
     if (a == null || b == null) return false;
     return a.equalsIgnoreCase(b);
+  }
+
+  private void syncRazonSocial(String nombre, String rfc) {
+    String normalizedNombre = trimToNull(nombre);
+    if (normalizedNombre == null) {
+      return;
+    }
+    String normalizedRfc = trimToNull(rfc);
+    if (!mongoTemplate.collectionExists("razon_social")) {
+      mongoTemplate.createCollection("razon_social");
+    }
+    var collection = mongoTemplate.getCollection("razon_social");
+    org.bson.Document existing = collection.find(new org.bson.Document("nombre", normalizedNombre)).first();
+    org.bson.Document payload = new org.bson.Document("nombre", normalizedNombre)
+        .append("rfc", normalizedRfc == null ? "" : normalizedRfc)
+        .append("programaImmex", existing != null ? String.valueOf(existing.getOrDefault("programaImmex", "IMMEX Operación")) : "IMMEX Operación")
+        .append("activo", true);
+    if (existing == null) {
+      collection.insertOne(payload);
+    } else {
+      collection.updateOne(new org.bson.Document("_id", existing.getObjectId("_id")), new org.bson.Document("$set", payload));
+    }
   }
 
   private String actorFrom(String value) {

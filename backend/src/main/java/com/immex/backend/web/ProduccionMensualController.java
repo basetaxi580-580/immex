@@ -4,7 +4,9 @@ import com.immex.backend.model.ProduccionMensualRequest;
 import com.immex.backend.model.ProduccionMensualResult;
 import com.immex.backend.service.ProduccionMensualService;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,6 +20,11 @@ public class ProduccionMensualController {
 
   public ProduccionMensualController(ProduccionMensualService service) {
     this.service = service;
+  }
+
+  @GetMapping("/productos")
+  public List<String> productos() {
+    return service.productos();
   }
 
   @PostMapping("/preview")

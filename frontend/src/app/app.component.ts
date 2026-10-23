@@ -571,10 +571,10 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
             <div class="close-step" *ngFor="let item of closeHistory">
               <div class="close-step-head">
                 <strong>{{ item.stepLabel }}</strong>
-                <span>{{ item.changedAt | date:'dd/MM/yyyy HH:mm' }}</span>
+                <span>{{ item.actor || '—' }}</span>
               </div>
-              <p>{{ item.actor }} · {{ item.field }}</p>
-              <p class="muted">{{ item.oldValue }} → {{ item.newValue }} · {{ item.reason }}</p>
+              <p>{{ item.field }} · {{ item.oldValue }} → {{ item.newValue }}</p>
+              <p class="muted">{{ item.changedAt | date:'dd/MM/yyyy HH:mm' }} · {{ item.reason }}</p>
             </div>
           </div>
           <div class="close-report-box" *ngIf="closeState; else closeReportEmpty">
@@ -699,7 +699,7 @@ export class AppComponent implements OnInit, OnDestroy {
     reason: 'Consumo para producción',
     auditor: 'Especialista',
   };
-  productionProducts = ['Arnés eléctrico automotriz', 'Carcasa de control'];
+  productionProducts: string[] = [];
   productionForm = {
     producto: 'Arnés eléctrico automotriz',
     cantidadProducida: 100,
@@ -711,10 +711,7 @@ export class AppComponent implements OnInit, OnDestroy {
     razonSocial: '',
     mes: '',
   };
-  razonSociales: RazonSocialOption[] = [
-    { nombre: 'Aerosistemas del Norte, S.A. de C.V.', rfc: 'ASN9403159K2', programaImmex: 'IMMEX Manufactura', activo: true },
-    { nombre: 'Componentes Industriales del Bajío, S.A. de C.V.', rfc: 'CIB0209187Q4', programaImmex: 'IMMEX Servicios', activo: true },
-  ];
+  razonSociales: RazonSocialOption[] = [];
 
   ngOnInit(): void {
     this.syncView();
@@ -728,6 +725,8 @@ export class AppComponent implements OnInit, OnDestroy {
       .subscribe(() => this.syncView());
     this.load();
     this.loadInventorySummary();
+    this.loadRazonSociales();
+    this.loadProductionProducts();
     this.refreshCloseReport();
     this.refreshCloseState();
     this.refreshAssistant();
@@ -1008,6 +1007,20 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
+  loadRazonSociales(): void {
+    this.service.razonesSociales().subscribe({
+      next: (data) => { this.razonSociales = data; this.cdr.markForCheck(); },
+      error: () => (this.razonSociales = []),
+    });
+  }
+
+  loadProductionProducts(): void {
+    this.service.productionProducts().subscribe({
+      next: (data) => { this.productionProducts = data.length ? data : ['Arnés eléctrico automotriz', 'Carcasa de control']; this.cdr.markForCheck(); },
+      error: () => { this.productionProducts = ['Arnés eléctrico automotriz', 'Carcasa de control']; },
+    });
+  }
+
   loadLotes(): void {
     this.service.lotes(undefined, this.service.getCompanyFilter()).subscribe({
       next: (data) => { this.lotes = data; this.cdr.markForCheck(); },
@@ -1185,6 +1198,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   simulatePeps(): void {
+    this.pepsError = '';
     this.service.simulatePeps(this.pepsForm).subscribe({
       next: (data) => {
         this.pepsPreview = data;

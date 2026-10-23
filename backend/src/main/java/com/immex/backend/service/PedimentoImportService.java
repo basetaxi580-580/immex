@@ -35,6 +35,7 @@ public class PedimentoImportService {
     String pedimento = request.getNumeroPedimento().trim();
     String razonSocial = request.getRazonSocial().trim();
     String rfc = request.getRfc().trim();
+    syncRazonSocial(razonSocial, rfc);
     BigDecimal total = BigDecimal.ZERO;
     int created = 0;
 
@@ -111,6 +112,28 @@ public class PedimentoImportService {
     }
     if (!mongoTemplate.collectionExists("lote_material")) {
       mongoTemplate.createCollection("lote_material");
+    }
+    if (!mongoTemplate.collectionExists("razon_social")) {
+      mongoTemplate.createCollection("razon_social");
+    }
+  }
+
+  private void syncRazonSocial(String nombre, String rfc) {
+    String normalizedNombre = nombre == null ? "" : nombre.trim();
+    if (normalizedNombre.isEmpty()) {
+      return;
+    }
+    String normalizedRfc = rfc == null ? "" : rfc.trim();
+    var collection = mongoTemplate.getCollection("razon_social");
+    Document existing = collection.find(new Document("nombre", normalizedNombre)).first();
+    Document payload = new Document("nombre", normalizedNombre)
+        .append("rfc", normalizedRfc)
+        .append("programaImmex", existing != null ? String.valueOf(existing.getOrDefault("programaImmex", "IMMEX Operación")) : "IMMEX Operación")
+        .append("activo", true);
+    if (existing == null) {
+      collection.insertOne(payload);
+    } else {
+      collection.updateOne(new Document("_id", existing.getObjectId("_id")), new Document("$set", payload));
     }
   }
 
