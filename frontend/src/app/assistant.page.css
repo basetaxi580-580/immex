@@ -51,6 +51,11 @@
 .review-reminder { max-width: 210px; line-height: 1.4; }
 .continue-button { text-align: left; }
 .file-input { display: none; }
+.empty-paper-wrap { min-height: 405px; }
+.empty-document { display: grid; justify-items: center; gap: 9px; max-width: 240px; color: #8193a2; text-align: center; }
+.empty-file-icon { display: grid; place-items: center; width: 52px; height: 52px; border: 1px dashed #b9cdd8; border-radius: 15px; color: #3d8b99; background: rgba(255,255,255,.8); font-size: 1.1rem; }
+.empty-document strong { color: #496579; font-size: .78rem; }
+.empty-document > span:last-child { font-size: .67rem; line-height: 1.5; }
 .upload-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 39px; flex: 0 0 auto; padding: 0 13px; border: 1px solid #c9d9e5; border-radius: 8px; color: #234963; background: #fff; font-size: .72rem; font-weight: 750; cursor: pointer; }
 .upload-button:hover { border-color: #79a7b5; background: #f5fafb; }
 .upload-button:disabled { opacity: .7; cursor: progress; }

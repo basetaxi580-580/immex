@@ -50,8 +50,9 @@ type ChatMessage = { role: 'assistant' | 'user'; text: string };
       <section class="exercise-layout">
         <aside class="source-pane">
           <div class="pane-heading"><div><span class="step-label">FACTURA COMERCIAL</span><h2>Documento de importación</h2></div><span class="pdf-chip">PDF</span></div>
-          <div class="paper-wrap">
-            <article class="paper-preview" [class.scanned]="analyzed">
+          <div class="paper-wrap" [class.empty-paper-wrap]="!fileSelected">
+            <div class="empty-document" *ngIf="!fileSelected"><span class="empty-file-icon"><fa-icon [icon]="faUpload"></fa-icon></span><strong>Tu documento aparecerá aquí</strong><span>Sube un PDF para iniciar la revisión simulada.</span></div>
+            <article class="paper-preview" *ngIf="fileSelected" [class.scanned]="analyzed">
               <div class="paper-top"><span>FACTURA COMERCIAL</span><span>DOCUMENTO PROPORCIONADO</span></div>
               <div class="paper-caption">FACTURA N°</div>
               <div class="paper-number" [class.marked]="analyzed">2023-1234</div>
@@ -71,14 +72,14 @@ type ChatMessage = { role: 'assistant' | 'user'; text: string };
             </article>
             <div class="scan-line" *ngIf="analyzing"></div>
           </div>
-          <div class="document-meta"><span class="file-icon"><fa-icon [icon]="faFileLines"></fa-icon></span><div><b>{{ fileName || 'Ninguna factura seleccionada' }}</b><small>{{ fileSelected ? 'PDF seleccionado · 1 página · análisis de demostración' : 'Selecciona el PDF de prueba para comenzar' }}</small></div><fa-icon class="file-check" *ngIf="analyzed" [icon]="faCheck"></fa-icon></div>
-          <div class="source-note invoice-route-warning"><fa-icon [icon]="faFileInvoice"></fa-icon><span>La ruta México → España sugiere una exportación. Confirma que este documento corresponde a una importación IMMEX antes de registrarlo.</span></div>
+          <div class="document-meta" *ngIf="fileSelected"><span class="file-icon"><fa-icon [icon]="faFileLines"></fa-icon></span><div><b>{{ fileName }}</b><small>PDF seleccionado · análisis de demostración</small></div><fa-icon class="file-check" *ngIf="analyzed" [icon]="faCheck"></fa-icon></div>
+          <div class="source-note invoice-route-warning" *ngIf="analyzed"><fa-icon [icon]="faFileInvoice"></fa-icon><span>La ruta México → España sugiere una exportación. Confirma que este documento corresponde a una importación IMMEX antes de registrarlo.</span></div>
           <div class="invoice-issues" *ngIf="analyzed"><strong>Revisar antes de usar</strong><span>PED-12345 aparece como número de orden, no como pedimento.</span><span>El peso bruto (200 kg) aparece menor que el neto (630 kg).</span><span>La factura usa “$”, pero no indica la moneda.</span></div>
         </aside>
 
         <section class="capture-pane">
           <div class="pane-heading form-heading"><div><span class="step-label">DATOS PARA INVENTARIOS / PEDIMENTOS</span><h2>Revisa antes de transferir</h2></div><span class="field-count" [class.ready]="analyzed">{{ analyzed ? '2 datos precargables' : 'Lista para revisar' }}</span></div>
-          <div class="waiting-state" *ngIf="!analyzed && !analyzing"><div class="waiting-icon"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></div><strong>Revisemos esta factura</strong><span>La demo identificará la mercancía y la cantidad, y marcará los campos que requieren información aduanera.</span></div>
+          <div class="waiting-state" *ngIf="!analyzed && !analyzing"><div class="waiting-icon"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></div><strong>{{ fileSelected ? 'Documento listo para revisar' : 'Primero sube un documento' }}</strong><span>{{ fileSelected ? 'Inicia el análisis simulado para ver los datos comerciales y los campos que requieren confirmación.' : 'Al cargar un PDF aparecerá aquí la vista previa y podrás iniciar el análisis simulado.' }}</span></div>
           <div class="reading-state" *ngIf="analyzing"><span class="reading-orb"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></span><strong>Revisando la factura</strong><span>Separando datos comerciales de datos del pedimento…</span><div class="reading-track"><i></i></div></div>
           <div class="suggested-form" *ngIf="analyzed">
             <div class="document-warning"><span class="warning-mark">!</span><span><b>Posible exportación, no importación</b> La factura indica origen México y consignatario en España. Confirma la operación antes de continuar.</span></div>
