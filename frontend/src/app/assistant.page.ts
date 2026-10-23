@@ -3,7 +3,7 @@ import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faArrowRight, faCheck, faFileInvoice, faFileLines, faRotate, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faCheck, faFileInvoice, faFileLines, faRotate, faUpload, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 
 type ImportPartida = {
   partida: string;
@@ -39,8 +39,10 @@ type ImportDraft = {
 
       <section class="demo-intro">
         <div class="intro-symbol"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></div>
-        <div class="intro-copy"><strong>Empezamos con la factura que compartiste.</strong><span>Los datos encontrados se separan de los datos aduaneros que este documento no contiene.</span></div>
-        <button class="analyze-button" type="button" (click)="analyzeSample()" [disabled]="analyzing"><fa-icon [icon]="analyzing ? faRotate : faWandMagicSparkles" [class.spin]="analyzing"></fa-icon>{{ analyzing ? 'Revisando factura…' : analyzed ? 'Revisar de nuevo' : 'Analizar factura' }}</button>
+        <div class="intro-copy"><strong>Sube una factura y revisa los datos sugeridos.</strong><span>La demo usa el PDF de prueba compartido y distingue los datos visibles de los campos aduaneros que requieren confirmación.</span></div>
+        <input #invoiceInput class="file-input" type="file" accept=".pdf,application/pdf" (change)="onInvoiceSelected($event)" />
+        <button class="upload-button" type="button" (click)="invoiceInput.click()" [disabled]="analyzing"><fa-icon [icon]="faUpload"></fa-icon>Subir factura</button>
+        <button class="analyze-button" type="button" (click)="analyzeSample()" [disabled]="analyzing || !fileSelected"><fa-icon [icon]="analyzing ? faRotate : faWandMagicSparkles" [class.spin]="analyzing"></fa-icon>{{ analyzing ? 'Revisando factura…' : analyzed ? 'Analizar de nuevo' : 'Analizar PDF' }}</button>
       </section>
 
       <section class="exercise-layout">
@@ -67,7 +69,7 @@ type ImportDraft = {
             </article>
             <div class="scan-line" *ngIf="analyzing"></div>
           </div>
-          <div class="document-meta"><span class="file-icon"><fa-icon [icon]="faFileLines"></fa-icon></span><div><b>Factura comercial proporcionada</b><small>1 página · Datos resumidos para la demo</small></div><fa-icon class="file-check" *ngIf="analyzed" [icon]="faCheck"></fa-icon></div>
+          <div class="document-meta"><span class="file-icon"><fa-icon [icon]="faFileLines"></fa-icon></span><div><b>{{ fileName || 'Ninguna factura seleccionada' }}</b><small>{{ fileSelected ? 'PDF seleccionado · 1 página · análisis de demostración' : 'Selecciona el PDF de prueba para comenzar' }}</small></div><fa-icon class="file-check" *ngIf="analyzed" [icon]="faCheck"></fa-icon></div>
           <div class="source-note invoice-route-warning"><fa-icon [icon]="faFileInvoice"></fa-icon><span>La ruta México → España sugiere una exportación. Confirma que este documento corresponde a una importación IMMEX antes de registrarlo.</span></div>
           <div class="invoice-issues" *ngIf="analyzed"><strong>Revisar antes de usar</strong><span>PED-12345 aparece como número de orden, no como pedimento.</span><span>El peso bruto (200 kg) aparece menor que el neto (630 kg).</span><span>La factura usa “$”, pero no indica la moneda.</span></div>
         </aside>
@@ -99,7 +101,7 @@ type ImportDraft = {
         </section>
       </section>
 
-      <footer class="demo-disclaimer"><fa-icon [icon]="faWandMagicSparkles"></fa-icon><span>Esta demo resume el archivo proporcionado; no ejecuta OCR sobre otros documentos. Confirma los datos y completa el pedimento oficial antes de guardar una operación.</span></footer>
+      <footer class="demo-disclaimer"><fa-icon [icon]="faWandMagicSparkles"></fa-icon><span>Simulación preparada con la factura de prueba. El PDF que elijas activa la experiencia, pero no se procesa con OCR/IA; confirma los datos y completa el pedimento oficial antes de guardar.</span></footer>
     </main>
   `,
   styleUrl: './assistant.page.css',
@@ -113,8 +115,11 @@ export class AssistantPageComponent {
   protected readonly faFileInvoice = faFileInvoice;
   protected readonly faFileLines = faFileLines;
   protected readonly faRotate = faRotate;
+  protected readonly faUpload = faUpload;
   protected analyzing = false;
   protected analyzed = false;
+  protected fileSelected = false;
+  protected fileName = '';
   protected draft = this.exampleDraft();
   protected readonly companyOptions = [
     { nombre: 'Aerosistemas del Norte, S.A. de C.V.', rfc: 'ASN9403159K2' },
@@ -125,8 +130,23 @@ export class AssistantPageComponent {
     this.draft.rfc = this.companyOptions.find((company) => company.nombre === razonSocial)?.rfc ?? '';
   }
 
+  protected onInvoiceSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      this.fileSelected = false;
+      this.fileName = '';
+      this.analyzed = false;
+      return;
+    }
+    this.fileSelected = true;
+    this.fileName = file.name;
+    this.analyzed = false;
+  }
+
   protected analyzeSample(): void {
-    if (this.analyzing) return;
+    if (this.analyzing || !this.fileSelected) return;
     this.analyzed = false;
     this.analyzing = true;
     window.setTimeout(() => {
