@@ -69,7 +69,7 @@ type SidebarGroup = {
 
         <a class="ai-nav-link" routerLink="/assistant" routerLinkActive="active" (click)="collapseOnMobile()">
           <span class="ai-nav-icon"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></span>
-          <span class="ai-nav-copy"><strong>Copiloto IMMEX</strong><small>IA para cumplimiento</small></span>
+          <span class="ai-nav-copy"><strong>Demo IA · Pedimentos</strong><small>Asistencia de captura</small></span>
           <span class="ai-nav-badge">NUEVO</span>
         </a>
 
