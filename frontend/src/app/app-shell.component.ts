@@ -33,9 +33,9 @@ type SidebarGroup = {
       <aside class="sidebar" [class.is-collapsed]="!isSidebarOpen">
         <div class="sidebar-top">
           <div class="brand">
-            <div class="brand-mark">I</div>
+            <img class="brand-logo" src="assets/aura24-logo.png" alt="AURA24 — Administración Unificada de Riesgo y Anexo 24" />
             <div class="brand-text">
-              <p>IMMEX</p>
+              <p>Control IMMEX</p>
               <span>Panel operativo</span>
             </div>
           </div>
