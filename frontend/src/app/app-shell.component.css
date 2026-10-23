@@ -16,6 +16,13 @@
 .company-selector select:focus-visible { border-color: #51d9ce; box-shadow: 0 0 0 3px rgba(81, 217, 206, .17); }
 .company-selector select option { background: #102b55; color: #f4f8fd; }
 .company-selector small { color: #8facd0; font-size: .72rem; line-height: 1.3; }
+.ai-nav-link { position: relative; display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 11px 12px; border: 1px solid rgba(85, 224, 216, .3); border-radius: 12px; background: linear-gradient(110deg, rgba(31, 181, 198, .2), rgba(38, 111, 190, .18)); color: #f4fbff; text-decoration: none; box-shadow: inset 0 1px rgba(255,255,255,.06); transition: border-color .18s ease, background .18s ease, transform .18s ease; }
+.ai-nav-link:hover, .ai-nav-link.active { border-color: rgba(89, 240, 223, .65); background: linear-gradient(110deg, rgba(31, 181, 198, .32), rgba(38, 111, 190, .28)); transform: translateY(-1px); }
+.ai-nav-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: rgba(73, 225, 215, .16); color: #72eee0; }
+.ai-nav-copy { display: grid; min-width: 0; gap: 2px; }
+.ai-nav-copy strong { font-size: .82rem; letter-spacing: .01em; }
+.ai-nav-copy small { color: #9cc9e6; font-size: .69rem; }
+.ai-nav-badge { padding: 4px 6px; border: 1px solid rgba(96, 227, 215, .3); border-radius: 999px; color: #7af0df; font-size: .55rem; font-weight: 800; letter-spacing: .07em; }
 .menu { overflow-y: auto; min-height: 0; display: grid; gap: 6px; align-content: start; padding-right: 3px; scrollbar-color: rgba(158, 191, 226, .45) transparent; scrollbar-width: thin; }
 .menu-group-toggle { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; padding: 8px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: #c4d8ef; text-align: left; cursor: pointer; font-size: .82rem; transition: background .15s ease, color .15s ease; }
 .menu-group-toggle:hover, .menu-group-toggle.active { border-color: rgba(174, 207, 241, .12); background: rgba(255, 255, 255, .055); color: #fff; }
@@ -34,11 +41,14 @@
 .side-note { display: none; }
 .sidebar.is-collapsed .brand,
 .sidebar.is-collapsed .company-selector,
+.sidebar.is-collapsed .ai-nav-copy,
+.sidebar.is-collapsed .ai-nav-badge,
 .sidebar.is-collapsed .menu-copy,
 .sidebar.is-collapsed .menu-caret { display: none; }
 .sidebar.is-collapsed .sidebar-top { justify-content: center; }
 .sidebar.is-collapsed .brand-logo { width: 48px; height: 38px; }
 .sidebar.is-collapsed .menu-group-toggle { grid-template-columns: 1fr; justify-items: center; }
+.sidebar.is-collapsed .ai-nav-link { grid-template-columns: 1fr; justify-items: center; padding: 8px 4px; }
 .sidebar.is-collapsed .menu-subitems { display: none; }
 .workspace { min-width: 0; min-height: 0; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
 .topbar { padding: 13px 20px; background: rgba(255, 255, 255, .92); border-bottom: 1px solid #c7ddec; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex: 0 0 auto; box-shadow: 0 3px 12px rgba(17, 65, 118, .05); }

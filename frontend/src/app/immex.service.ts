@@ -22,7 +22,7 @@ export class ImmexService {
   private readonly produccionMensualUrl = '/api/produccion/mensual';
   private readonly anexo24Url = '/api/reportes/anexo24';
   private readonly razonesSocialesUrl = '/api/razones-sociales';
-  private readonly assistantUrl = '/api/records/assistant';
+  private readonly assistantUrl = '/api/assistant/compliance';
 
   list(): Observable<ImmexRecord[]> {
     return this.http.get<ImmexRecord[]>(this.withCompany(this.apiUrl));

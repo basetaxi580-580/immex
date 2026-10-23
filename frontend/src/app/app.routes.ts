@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { AppComponent } from './app.component';
 import { InventoryPageComponent } from './inventory.page';
 import { AuditorPageComponent } from './auditor.page';
+import { AssistantPageComponent } from './assistant.page';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
@@ -16,6 +17,7 @@ export const routes: Routes = [
   { path: 'dashboard/audit', component: AuditorPageComponent },
   { path: 'dashboard/production', component: AppComponent },
   { path: 'dashboard/auditor', redirectTo: 'dashboard/audit' },
+  { path: 'assistant', component: AssistantPageComponent },
   { path: 'inventory', component: InventoryPageComponent },
   { path: 'search', component: InventoryPageComponent, data: { searchOnly: true } },
   { path: '**', redirectTo: 'dashboard' },

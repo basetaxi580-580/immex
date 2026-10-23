@@ -6,7 +6,7 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { ImmexService } from './immex.service';
 import { UserRoleService } from './user-role.service';
 import { DashboardInventorySummary, DashboardMaterialRow } from './models';
-import { faBars, faBoxesStacked, faChartLine, faChevronLeft, faClockRotateLeft, faClipboardList, faFileCircleCheck, faFileInvoiceDollar, faGear, faHouse, faMagnifyingGlass, faTruckRampBox, faTriangleExclamation, faUserShield } from '@fortawesome/free-solid-svg-icons';
+import { faBars, faBoxesStacked, faChartLine, faChevronLeft, faClockRotateLeft, faClipboardList, faFileCircleCheck, faFileInvoiceDollar, faGear, faHouse, faMagnifyingGlass, faTruckRampBox, faTriangleExclamation, faUserShield, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 
 type AlertItem = DashboardMaterialRow & { accionSugerida: 'exportar' | 'retornar' | 'importar en definitiva' };
 
@@ -66,6 +66,12 @@ type SidebarGroup = {
           </label>
           <small>{{ selectedRole === 'Consulta' ? 'Acceso de solo lectura' : 'Acceso de edición y operación' }}</small>
         </div>
+
+        <a class="ai-nav-link" routerLink="/assistant" routerLinkActive="active" (click)="collapseOnMobile()">
+          <span class="ai-nav-icon"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></span>
+          <span class="ai-nav-copy"><strong>Copiloto IMMEX</strong><small>IA para cumplimiento</small></span>
+          <span class="ai-nav-badge">NUEVO</span>
+        </a>
 
         <nav class="menu" aria-label="Navegación principal">
           <section class="menu-group" *ngFor="let group of navGroups">
@@ -143,6 +149,7 @@ export class AppShellComponent implements OnInit {
   protected readonly faBars = faBars;
   protected readonly faChevronLeft = faChevronLeft;
   protected readonly faTriangleExclamation = faTriangleExclamation;
+  protected readonly faWandMagicSparkles = faWandMagicSparkles;
 
   protected isSidebarOpen = typeof window !== 'undefined' && window.innerWidth > 1100;
   protected alertsOpen = false;
