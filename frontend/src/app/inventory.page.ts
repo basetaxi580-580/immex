@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -62,6 +63,7 @@ import { CollectionSnapshot, ImmexRecord } from './models';
           <h2>Captura de pedimento de importación</h2>
           <span>Alta con partidas múltiples</span>
         </div>
+        <p class="muted import-guidance">Captura los datos tal como aparecen en el pedimento. El RFC se completa al elegir la razón social.</p>
 
         <form class="form" (ngSubmit)="submitImport()" #importForm="ngForm">
           <div class="two-cols">
@@ -77,7 +79,7 @@ import { CollectionSnapshot, ImmexRecord } from './models';
 
           <label>
             <span>Razón social</span>
-            <select [(ngModel)]="importFormModel.razonSocial" name="razonSocial" required>
+            <select [(ngModel)]="importFormModel.razonSocial" name="razonSocial" required (ngModelChange)="setImportCompany($event)">
               <option value="">Selecciona una razón social</option>
               <option *ngFor="let rs of razonSociales" [value]="rs.nombre">{{ rs.nombre }} · {{ rs.rfc }}</option>
             </select>
@@ -85,7 +87,7 @@ import { CollectionSnapshot, ImmexRecord } from './models';
 
           <label>
             <span>RFC</span>
-            <input [(ngModel)]="importFormModel.rfc" name="rfc" required placeholder="ASN9403159K2" />
+            <input [(ngModel)]="importFormModel.rfc" name="rfc" required placeholder="Se completa al elegir razón social" />
           </label>
 
           <div class="partidas-head">
@@ -122,11 +124,11 @@ import { CollectionSnapshot, ImmexRecord } from './models';
               <div class="two-cols">
                 <label>
                   <span>Cantidad</span>
-                  <input [(ngModel)]="partida.cantidad" [name]="'cantidad' + i" type="number" min="1" required />
+                  <input [(ngModel)]="partida.cantidad" [name]="'cantidad' + i" type="number" min="1" required placeholder="1200" />
                 </label>
                 <label>
                   <span>Valor unitario en MXN</span>
-                  <input [(ngModel)]="partida.valorUnitarioMxn" [name]="'valorUnitarioMxn' + i" type="number" step="0.01" min="0.01" required />
+                  <input [(ngModel)]="partida.valorUnitarioMxn" [name]="'valorUnitarioMxn' + i" type="number" step="0.01" min="0.01" required placeholder="3.20" />
                 </label>
               </div>
             </article>
@@ -513,7 +515,7 @@ export class InventoryPageComponent implements OnInit {
         this.loadCollections();
       },
       error: (err: unknown) => {
-        this.importError = 'No se pudo guardar la importación.';
+        this.importError = this.errorMessage(err, 'No se pudo guardar la importación.');
       },
     });
   }
@@ -547,8 +549,8 @@ export class InventoryPageComponent implements OnInit {
         this.resetForm();
         this.load();
       },
-      error: () => {
-        this.error = 'No se pudo guardar el registro.';
+      error: (err: unknown) => {
+        this.error = this.errorMessage(err, 'No se pudo guardar el registro.');
       },
     });
   }
@@ -579,6 +581,10 @@ export class InventoryPageComponent implements OnInit {
 
   resetImport(): void {
     this.importFormModel = this.emptyImportForm();
+  }
+
+  setImportCompany(razonSocial: string): void {
+    this.importFormModel.rfc = this.razonSociales.find((option) => option.nombre === razonSocial)?.rfc ?? '';
   }
 
   daysLeft(record: ImmexRecord): number {
@@ -630,6 +636,16 @@ export class InventoryPageComponent implements OnInit {
       rfc: '',
       partidas: [{ partida: '', material: '', unidad: '', regimenAduanero: '', cantidad: 1, valorUnitarioMxn: 0 }],
     };
+  }
+
+  private errorMessage(error: unknown, fallback: string): string {
+    if (error instanceof HttpErrorResponse) {
+      const detail = typeof error.error === 'string'
+        ? error.error
+        : error.error?.message || error.error?.detail || error.error?.error;
+      if (typeof detail === 'string' && detail.trim()) return `${fallback} ${detail}`;
+    }
+    return fallback;
   }
 
   private normalizeForm(): ImmexRecord {

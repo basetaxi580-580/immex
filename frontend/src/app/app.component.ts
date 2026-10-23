@@ -175,18 +175,36 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
           <form class="form" (ngSubmit)="save()">
             <label>
               <span>Pedimento / Folio</span>
-              <input [(ngModel)]="form.pedimento" name="pedimento" required placeholder="PI-2401-001" />
+              <input [(ngModel)]="form.pedimento" name="pedimento" required placeholder="24 48 3021 9001234" />
             </label>
             <label>
               <span>Razón social</span>
-              <select [(ngModel)]="form.razonSocial" name="razonSocial" required>
+              <select [(ngModel)]="form.razonSocial" name="razonSocial" required (ngModelChange)="setMovementCompany($event)">
                 <option value="">Selecciona una razón social</option>
                 <option *ngFor="let option of razonSociales" [value]="option.nombre">{{ option.nombre }} · {{ option.rfc }}</option>
               </select>
             </label>
             <label>
+              <span>RFC</span>
+              <input [(ngModel)]="form.rfc" name="rfc" required placeholder="Se completa al elegir la razón social" />
+            </label>
+            <div class="two-cols">
+              <label>
+                <span>Partida</span>
+                <input [(ngModel)]="form.partida" name="partida" required placeholder="01" />
+              </label>
+              <label>
+                <span>Unidad</span>
+                <input [(ngModel)]="form.unidad" name="unidad" required placeholder="kg" />
+              </label>
+            </div>
+            <label>
+              <span>Régimen aduanero</span>
+              <input [(ngModel)]="form.regimenAduanero" name="regimenAduanero" required placeholder="IMMEX temporal" />
+            </label>
+            <label>
               <span>Material</span>
-              <input [(ngModel)]="form.material" name="material" required placeholder="Resina ABS" />
+              <input [(ngModel)]="form.material" name="material" required placeholder="Resina ABS natural" />
             </label>
             <label>
               <span>Proveedor / Planta</span>
@@ -208,11 +226,11 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
             <div class="two-cols">
               <label>
                 <span>Cantidad</span>
-                <input [(ngModel)]="form.cantidad" name="cantidad" type="number" min="1" required />
+                <input [(ngModel)]="form.cantidad" name="cantidad" type="number" min="1" required placeholder="1200" />
               </label>
               <label>
                 <span>Valor unitario</span>
-                <input [(ngModel)]="form.valorUnitario" name="valorUnitario" type="number" step="0.01" min="0.01" placeholder="1.00" required />
+                <input [(ngModel)]="form.valorUnitario" name="valorUnitario" type="number" step="0.01" min="0.01" placeholder="3.20" required />
               </label>
             </div>
             <div class="two-cols">
@@ -240,7 +258,7 @@ type DashboardView = 'dashboard' | 'movement' | 'ledger' | 'flow' | 'summary' | 
             </label>
             <label>
               <span>Notas</span>
-              <textarea [(ngModel)]="form.notas" name="notas" rows="3" placeholder="Observaciones de conciliación" required></textarea>
+              <textarea [(ngModel)]="form.notas" name="notas" rows="3" placeholder="Alta de importación conforme al pedimento" required></textarea>
             </label>
             <div class="actions">
               <button class="primary" type="submit">{{ editingId ? 'Actualizar' : 'Guardar' }}</button>
@@ -1269,6 +1287,11 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
+  protected setMovementCompany(razonSocial: string): void {
+    this.form.razonSocial = razonSocial;
+    this.form.rfc = this.razonSociales.find((option) => option.nombre === razonSocial)?.rfc ?? '';
+  }
+
   edit(record: ImmexRecord): void {
     this.editingId = record.id ?? null;
     this.form = {
@@ -1382,6 +1405,11 @@ export class AppComponent implements OnInit, OnDestroy {
       material: '',
       proveedor: '',
       movimiento: 'Entrada',
+      razonSocial: '',
+      rfc: '',
+      partida: '',
+      unidad: '',
+      regimenAduanero: '',
       cantidad: 1,
       valorUnitario: '' as any,
       fechaIngreso: isoToday,

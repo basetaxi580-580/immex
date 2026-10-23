@@ -107,6 +107,12 @@ public class CloseMonthlyService {
     requireSigned("all");
   }
 
+  public void requireOpen(String razonSocial) {
+    if (status(razonSocial).firmado()) {
+      throw new ResponseStatusException(HttpStatus.CONFLICT, "El cierre mensual de este periodo ya está firmado; no se pueden agregar importaciones.");
+    }
+  }
+
   public boolean hasCriticalErrors(String razonSocial) {
     return status(razonSocial).hasCriticalErrors();
   }

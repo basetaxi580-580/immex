@@ -28,7 +28,7 @@ public class PedimentoImportService {
   }
 
   public PedimentoImportResult importPedimento(PedimentoImportRequest request) {
-    closeMonthlyService.requireSigned();
+    closeMonthlyService.requireOpen(request.getRazonSocial());
     ensureCollections();
     validateUniquePartidas(request.getPartidas());
     LocalDate fecha = request.getFecha();
