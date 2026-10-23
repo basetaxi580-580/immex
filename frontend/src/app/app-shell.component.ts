@@ -149,10 +149,7 @@ export class AppShellComponent implements OnInit {
   protected inventorySummary: DashboardInventorySummary | null = null;
   protected selectedRazonSocial = this.service.getCompanyFilter();
   protected selectedRole = this.roleService.selectedRole;
-  protected razonSociales = [
-    { nombre: 'Aerosistemas del Norte, S.A. de C.V.', rfc: 'ASN9403159K2' },
-    { nombre: 'Componentes Industriales del Bajío, S.A. de C.V.', rfc: 'CIB0209187Q4' },
-  ];
+  protected razonSociales: { nombre: string; rfc: string }[] = [];
   protected readonly expandedGroups = new Set<string>(['Dashboard', 'Importaciones', 'Inventario', 'Producción', 'Exportaciones', 'Descargos', 'Alertas', 'Conciliación', 'Reportes', 'Configuración']);
 
   protected readonly navGroups: SidebarGroup[] = [
@@ -195,6 +192,7 @@ export class AppShellComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadInventorySummary();
+    this.loadRazonSociales();
   }
 
   protected get selectedRfcLabel(): string {
@@ -224,6 +222,13 @@ export class AppShellComponent implements OnInit {
 
   private loadInventorySummary(): void {
     this.service.inventorySummary().subscribe({ next: (data) => (this.inventorySummary = data), error: () => (this.inventorySummary = null) });
+  }
+
+  private loadRazonSociales(): void {
+    this.service.razonesSociales().subscribe({
+      next: (data) => { this.razonSociales = data.map((item) => ({ nombre: item.nombre, rfc: item.rfc })); },
+      error: () => { this.razonSociales = []; },
+    });
   }
 
   private suggestAction(diasRestantes: number): AlertItem['accionSugerida'] {

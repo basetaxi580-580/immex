@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.TreeSet;
 import org.bson.Document;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,15 @@ public class ProduccionMensualService {
 
   public ProduccionMensualResult ejecutar(ProduccionMensualRequest request) {
     return calcular(request, true);
+  }
+
+  public List<String> productos() {
+    ensureCollections();
+    return mongoTemplate.getCollection("bom").find().into(new ArrayList<>()).stream()
+        .map(doc -> String.valueOf(doc.get("producto")))
+        .filter(producto -> producto != null && !producto.isBlank())
+        .collect(java.util.stream.Collectors.toCollection(TreeSet::new))
+        .stream().toList();
   }
 
   private ProduccionMensualResult calcular(ProduccionMensualRequest request, boolean ejecutar) {

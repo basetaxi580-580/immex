@@ -29,30 +29,28 @@ import { CollectionSnapshot, ImmexRecord } from './models';
 
       <section class="card case-card" *ngIf="!searchOnly">
         <div class="card-head">
-          <h2>Casos de datos ficticios</h2>
-          <span>Separados por planta y razón social</span>
+          <h2>Datos persistidos</h2>
+          <span>Conectados al backend</span>
         </div>
         <div class="case-grid">
-          <article class="case-item" *ngFor="let item of demoCases">
+          <article class="case-item" *ngFor="let item of collections | slice:0:3">
             <div class="case-top">
               <div>
-                <p class="case-kicker">{{ item.kicker }}</p>
-                <h3>{{ item.title }}</h3>
+                <p class="case-kicker">{{ item.name }}</p>
+                <h3>{{ item.name }}</h3>
               </div>
-              <span class="case-pill">{{ item.total }} registros</span>
+              <span class="case-pill">{{ item.count }} registros</span>
             </div>
-            <p class="case-text">{{ item.description }}</p>
+            <p class="case-text">{{ item.sample[0] || 'Sin muestra disponible' }}</p>
             <div class="case-stats">
-              <span>Vigentes: {{ item.vigentes }}</span>
-              <span>Por vencer: {{ item.porVencer }}</span>
-              <span>Vencidos: {{ item.vencidos }}</span>
+              <span>Persistido</span>
+              <span>Actualizado por altas</span>
+              <span>Compartido con producción / PEPS / reportes</span>
             </div>
             <div class="case-chips">
-              <span class="badge" *ngFor="let company of item.companies">{{ company }}</span>
+              <span class="badge" *ngIf="item.sample.length > 1">{{ item.sample.length }} muestras</span>
+              <span class="badge" *ngIf="item.count > 0">{{ item.count }} documentos</span>
             </div>
-            <ul class="case-list">
-              <li *ngFor="let material of item.materials">{{ material }}</li>
-            </ul>
           </article>
         </div>
       </section>
@@ -375,41 +373,6 @@ export class InventoryPageComponent implements OnInit {
   private readonly router = inject(Router);
   readonly searchOnly = inject(ActivatedRoute).snapshot.data['searchOnly'] === true;
 
-  demoCases = [
-    {
-      kicker: 'Caso 1',
-      title: 'Planta de inyección con merma y reciclado',
-      description: 'Resina ABS y regranulado con lotes frescos, material por vencer y un lote vencido para simular el cierre de merma y retorno interno.',
-      total: 3,
-      vigentes: 1,
-      porVencer: 1,
-      vencidos: 1,
-      companies: ['Aerosistemas del Norte, S.A. de C.V.'],
-      materials: ['Resina ABS natural', 'Regranulado ABS reciclado', 'Pigmento masterbatch negro'],
-    },
-    {
-      kicker: 'Caso 2',
-      title: 'Planta de arneses con BOM amplio',
-      description: 'Arnés automotriz con múltiples componentes: conectores, terminales, cinta, grommets y consumibles, con inventario cruzado entre estados.',
-      total: 3,
-      vigentes: 1,
-      porVencer: 1,
-      vencidos: 1,
-      companies: ['Componentes Industriales del Bajío, S.A. de C.V.'],
-      materials: ['Conector 12 pines', 'Terminal hembra 6.3 mm', 'Cinta PVC automotriz'],
-    },
-    {
-      kicker: 'Caso 3',
-      title: 'Empresa con 2 razones sociales',
-      description: 'Vista compartida de dos empresas para validar que el selector global mantiene la separación y permite revisar ambas razones sociales sin mezclar saldos.',
-      total: 6,
-      vigentes: 2,
-      porVencer: 2,
-      vencidos: 2,
-      companies: ['Aerosistemas del Norte, S.A. de C.V.', 'Componentes Industriales del Bajío, S.A. de C.V.'],
-      materials: ['Inventario por empresa separado', 'Lotes vigentes / por vencer / vencidos', 'Consulta consolidada verificada'],
-    },
-  ];
   records: ImmexRecord[] = [];
   filteredRecords: ImmexRecord[] = [];
   collections: CollectionSnapshot[] = [];
@@ -420,15 +383,13 @@ export class InventoryPageComponent implements OnInit {
   searchTerm = '';
   statusFilter = 'Todos';
   movementFilter = 'Todos';
-  razonSociales = [
-    { nombre: 'Aerosistemas del Norte, S.A. de C.V.', rfc: 'ASN9403159K2' },
-    { nombre: 'Componentes Industriales del Bajío, S.A. de C.V.', rfc: 'CIB0209187Q4' },
-  ];
+  razonSociales: { nombre: string; rfc: string }[] = [];
   importFormModel = this.emptyImportForm();
   form: ImmexRecord = this.emptyForm();
 
   ngOnInit(): void {
     const record = history.state?.editingRecord as ImmexRecord | undefined;
+    this.loadRazonSociales();
     if (record && !this.searchOnly) {
       this.editingId = record.id ?? null;
       this.form = { ...record };
@@ -473,6 +434,13 @@ export class InventoryPageComponent implements OnInit {
       error: () => {
         this.collections = [];
       },
+    });
+  }
+
+  loadRazonSociales(): void {
+    this.service.razonesSociales().subscribe({
+      next: (data) => { this.razonSociales = data.map((item) => ({ nombre: item.nombre, rfc: item.rfc })); this.cdr.markForCheck(); },
+      error: () => { this.razonSociales = []; },
     });
   }
 

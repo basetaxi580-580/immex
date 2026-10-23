@@ -14,5 +14,5 @@ public record CloseMonthlyStatus(
     int pendingCount,
     List<String> pendingItems,
     List<CloseWorkflowStep> steps,
-    List<String> history,
+    List<CloseMonthlyHistoryItem> history,
     String currentResponsible) {}

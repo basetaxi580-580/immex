@@ -617,7 +617,7 @@ export class AppComponent implements OnInit, OnDestroy {
     reason: 'Consumo para producción',
     auditor: 'Especialista',
   };
-  productionProducts = ['Arnés eléctrico automotriz', 'Carcasa de control'];
+  productionProducts: string[] = [];
   productionForm = {
     producto: 'Arnés eléctrico automotriz',
     cantidadProducida: 100,
@@ -629,10 +629,7 @@ export class AppComponent implements OnInit, OnDestroy {
     razonSocial: '',
     mes: '',
   };
-  razonSociales: RazonSocialOption[] = [
-    { nombre: 'Aerosistemas del Norte, S.A. de C.V.', rfc: 'ASN9403159K2', programaImmex: 'IMMEX Manufactura', activo: true },
-    { nombre: 'Componentes Industriales del Bajío, S.A. de C.V.', rfc: 'CIB0209187Q4', programaImmex: 'IMMEX Servicios', activo: true },
-  ];
+  razonSociales: RazonSocialOption[] = [];
 
   ngOnInit(): void {
     this.syncView();
@@ -646,6 +643,8 @@ export class AppComponent implements OnInit, OnDestroy {
       .subscribe(() => this.syncView());
     this.load();
     this.loadInventorySummary();
+    this.loadRazonSociales();
+    this.loadProductionProducts();
     this.refreshCloseReport();
     this.refreshCloseState();
     this.refreshAssistant();
@@ -832,6 +831,20 @@ export class AppComponent implements OnInit, OnDestroy {
     this.service.inventorySummary().subscribe({
       next: (data) => { this.inventorySummary = data; this.cdr.markForCheck(); },
       error: () => (this.inventorySummary = null),
+    });
+  }
+
+  loadRazonSociales(): void {
+    this.service.razonesSociales().subscribe({
+      next: (data) => { this.razonSociales = data; this.cdr.markForCheck(); },
+      error: () => (this.razonSociales = []),
+    });
+  }
+
+  loadProductionProducts(): void {
+    this.service.productionProducts().subscribe({
+      next: (data) => { this.productionProducts = data.length ? data : ['Arnés eléctrico automotriz', 'Carcasa de control']; this.cdr.markForCheck(); },
+      error: () => { this.productionProducts = ['Arnés eléctrico automotriz', 'Carcasa de control']; },
     });
   }
 
