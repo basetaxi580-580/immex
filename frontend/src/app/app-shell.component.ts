@@ -1,24 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { ImmexService } from './immex.service';
+import { UserRoleService } from './user-role.service';
 import { DashboardInventorySummary, DashboardMaterialRow } from './models';
-import {
-  faBars,
-  faBoxesStacked,
-  faChartLine,
-  faChevronLeft,
-  faClockRotateLeft,
-  faClipboardList,
-  faFileCircleCheck,
-  faFileInvoiceDollar,
-  faHouse,
-  faMagnifyingGlass,
-  faTruckRampBox,
-  faTriangleExclamation,
-  faUserShield,
-} from '@fortawesome/free-solid-svg-icons';
+import { faBars, faBoxesStacked, faChartLine, faChevronLeft, faClockRotateLeft, faClipboardList, faFileCircleCheck, faFileInvoiceDollar, faGear, faHouse, faMagnifyingGlass, faTruckRampBox, faTriangleExclamation, faUserShield } from '@fortawesome/free-solid-svg-icons';
 
 type AlertItem = DashboardMaterialRow & { accionSugerida: 'exportar' | 'retornar' | 'importar en definitiva' };
 
@@ -39,7 +27,7 @@ type SidebarGroup = {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, FontAwesomeModule],
+  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive, RouterOutlet, FontAwesomeModule],
   template: `
     <div class="app-shell">
       <aside class="sidebar" [class.is-collapsed]="!isSidebarOpen">
@@ -52,27 +40,36 @@ type SidebarGroup = {
             </div>
           </div>
 
-          <button
-            type="button"
-            class="sidebar-toggle"
-            (click)="toggleSidebar()"
-            [attr.aria-label]="isSidebarOpen ? 'Contraer menú' : 'Expandir menú'"
-            [attr.title]="isSidebarOpen ? 'Contraer menú' : 'Expandir menú'"
-          >
+          <button type="button" class="sidebar-toggle" (click)="toggleSidebar()" [attr.aria-label]="isSidebarOpen ? 'Contraer menú' : 'Expandir menú'" [attr.title]="isSidebarOpen ? 'Contraer menú' : 'Expandir menú'">
             <fa-icon [icon]="isSidebarOpen ? faChevronLeft : faBars"></fa-icon>
           </button>
         </div>
 
+        <div class="company-selector card">
+          <label>
+            <span>Razón social / RFC</span>
+            <select [(ngModel)]="selectedRazonSocial" name="selectedRazonSocial" (ngModelChange)="changeCompanyFilter($event)">
+              <option value="all">Vista consolidada</option>
+              <option *ngFor="let option of razonSociales" [value]="option.nombre">{{ option.nombre }} · {{ option.rfc }}</option>
+            </select>
+          </label>
+          <small>{{ selectedRfcLabel }}</small>
+        </div>
+
+        <div class="company-selector card">
+          <label>
+            <span>Rol actual</span>
+            <select [(ngModel)]="selectedRole" name="selectedRole" (ngModelChange)="changeRole($event)">
+              <option value="Especialista">Especialista</option>
+              <option value="Consulta">Consulta</option>
+            </select>
+          </label>
+          <small>{{ selectedRole }}</small>
+        </div>
+
         <nav class="menu" aria-label="Navegación principal">
           <section class="menu-group" *ngFor="let group of navGroups">
-            <button
-              type="button"
-              class="menu-group-toggle"
-              [class.active]="isGroupActive(group)"
-              (click)="toggleGroup(group.heading)"
-              [attr.aria-expanded]="isGroupExpanded(group.heading)"
-              [attr.title]="group.heading"
-            >
+            <button type="button" class="menu-group-toggle" [class.active]="isGroupActive(group)" (click)="toggleGroup(group.heading)" [attr.aria-expanded]="isGroupExpanded(group.heading)" [attr.title]="group.heading">
               <span class="menu-icon"><fa-icon [icon]="group.icon"></fa-icon></span>
               <span class="menu-copy menu-group-copy">
                 <span class="menu-title">{{ group.heading }}</span>
@@ -81,15 +78,7 @@ type SidebarGroup = {
             </button>
 
             <div class="menu-subitems" *ngIf="isSidebarOpen && isGroupExpanded(group.heading)">
-              <a
-                *ngFor="let item of group.items"
-                class="menu-item"
-                routerLinkActive="active"
-                [routerLink]="item.route"
-                [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
-                (click)="collapseOnMobile()"
-                [attr.title]="item.label"
-              >
+              <a *ngFor="let item of group.items" class="menu-item" routerLinkActive="active" [routerLink]="item.route" [routerLinkActiveOptions]="{ exact: item.exact ?? false }" (click)="collapseOnMobile()" [attr.title]="item.label">
                 <span class="menu-icon"><fa-icon [icon]="item.icon"></fa-icon></span>
                 <span class="menu-copy">
                   <span class="menu-title">{{ item.label }}</span>
@@ -113,14 +102,7 @@ type SidebarGroup = {
             <h1>Panel de operación</h1>
           </div>
           <div class="topbar-actions">
-            <button
-              type="button"
-              class="alert-bell"
-              (click)="toggleAlerts()"
-              [attr.aria-expanded]="alertsOpen"
-              aria-label="Alertas de vencimiento"
-              title="Alertas de vencimiento"
-            >
+            <button type="button" class="alert-bell" (click)="toggleAlerts()" [attr.aria-expanded]="alertsOpen" aria-label="Alertas de vencimiento" title="Alertas de vencimiento">
               <fa-icon [icon]="faTriangleExclamation"></fa-icon>
               <span class="alert-count" *ngIf="alertItems.length">{{ alertItems.length }}</span>
             </button>
@@ -147,7 +129,7 @@ type SidebarGroup = {
           </div>
         </header>
 
-        <div class="page-host">
+        <div class="page-host" style="flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 20px;">
           <router-outlet></router-outlet>
         </div>
       </section>
@@ -157,6 +139,7 @@ type SidebarGroup = {
 })
 export class AppShellComponent implements OnInit {
   private readonly service = inject(ImmexService);
+  private readonly roleService = inject(UserRoleService);
   protected readonly faBars = faBars;
   protected readonly faChevronLeft = faChevronLeft;
   protected readonly faTriangleExclamation = faTriangleExclamation;
@@ -164,129 +147,48 @@ export class AppShellComponent implements OnInit {
   protected isSidebarOpen = typeof window !== 'undefined' && window.innerWidth > 1100;
   protected alertsOpen = false;
   protected inventorySummary: DashboardInventorySummary | null = null;
-  protected readonly expandedGroups = new Set<string>([
-    'Panel general',
-    'Inventario y movimientos',
-    'Control y seguimiento',
-    'Reportes y auditoría',
-    'Búsqueda',
-  ]);
+  protected selectedRazonSocial = this.service.getCompanyFilter();
+  protected selectedRole = this.roleService.selectedRole;
+  protected razonSociales = [
+    { nombre: 'Aerosistemas del Norte, S.A. de C.V.', rfc: 'ASN9403159K2' },
+    { nombre: 'Componentes Industriales del Bajío, S.A. de C.V.', rfc: 'CIB0209187Q4' },
+  ];
+  protected readonly expandedGroups = new Set<string>(['Dashboard', 'Importaciones', 'Inventario', 'Producción', 'Exportaciones', 'Descargos', 'Alertas', 'Conciliación', 'Reportes', 'Configuración']);
 
   protected readonly navGroups: SidebarGroup[] = [
-    {
-      heading: 'Panel general',
-      icon: faChartLine,
-      items: [
-        {
-          label: 'Panel general',
-          description: 'Resumen ejecutivo y métricas clave',
-          route: '/dashboard',
-          icon: faChartLine,
-          exact: true,
-        },
-      ],
-    },
-    {
-      heading: 'Inventario y movimientos',
-      icon: faBoxesStacked,
-      items: [
-        {
-          label: 'Inventario / Pedimentos',
-          description: 'Altas, filtros y edición',
-          route: '/inventory',
-          icon: faBoxesStacked,
-          exact: true,
-        },
-        {
-          label: 'Captura de movimiento',
-          description: 'Alta y edición del registro',
-          route: '/dashboard/movement',
-          icon: faClipboardList,
-          exact: true,
-        },
-        {
-          label: 'Ledger IMMEX',
-          description: 'Tabla detallada de movimientos',
-          route: '/dashboard/ledger',
-          icon: faFileInvoiceDollar,
-          exact: true,
-        },
-        {
-          label: 'Flujo general',
-          description: 'Entrada, consumo y exportación',
-          route: '/dashboard/flow',
-          icon: faTruckRampBox,
-          exact: true,
-        },
-      ],
-    },
-    {
-      heading: 'Control y seguimiento',
-      icon: faChartLine,
-      items: [
-        {
-          label: 'Resumen de operación',
-          description: 'Conteos y saldos generales',
-          route: '/dashboard/summary',
-          icon: faChartLine,
-          exact: true,
-        },
-        {
-          label: 'Excepciones y riesgo',
-          description: 'Alertas y materiales críticos',
-          route: '/dashboard/risk',
-          icon: faTriangleExclamation,
-          exact: true,
-        },
-        {
-          label: 'PEPS',
-          description: 'Consumo simulado',
-          route: '/dashboard/peps',
-          icon: faClockRotateLeft,
-          exact: true,
-        },
-      ],
-    },
-    {
-      heading: 'Reportes y auditoría',
-      icon: faFileCircleCheck,
-      items: [
-        {
-          label: 'Producción mensual',
-          description: 'Simular consumo por BOM',
-          route: '/dashboard/production',
-          icon: faFileCircleCheck,
-          exact: true,
-        },
-        {
-          label: 'Cierre mensual',
-          description: 'Reporte listo para revisión',
-          route: '/dashboard/close',
-          icon: faFileCircleCheck,
-          exact: true,
-        },
-        {
-          label: 'Trazabilidad',
-          description: 'Quién, cuándo y por qué',
-          route: '/dashboard/audit',
-          icon: faUserShield,
-          exact: true,
-        },
-      ],
-    },
-    {
-      heading: 'Búsqueda',
-      icon: faMagnifyingGlass,
-      items: [
-        {
-          label: 'Búsqueda rápida',
-          description: 'Filtrar y localizar información',
-          route: '/search',
-          icon: faMagnifyingGlass,
-          exact: true,
-        },
-      ],
-    },
+    { heading: 'Dashboard', icon: faChartLine, items: [{ label: 'Dashboard', description: 'Resumen ejecutivo y métricas clave', route: '/dashboard', icon: faChartLine, exact: true }] },
+    { heading: 'Importaciones', icon: faBoxesStacked, items: [
+      { label: 'Inventario / Pedimentos', description: 'Altas, filtros y edición', route: '/inventory', icon: faBoxesStacked, exact: true },
+      { label: 'Captura de movimiento', description: 'Alta y edición del registro', route: '/dashboard/movement', icon: faClipboardList, exact: true },
+      { label: 'Ledger IMMEX', description: 'Tabla detallada de movimientos', route: '/dashboard/ledger', icon: faFileInvoiceDollar, exact: true },
+    ] },
+    { heading: 'Inventario', icon: faBoxesStacked, items: [
+      { label: 'Flujo general', description: 'Entrada, consumo y exportación', route: '/dashboard/flow', icon: faTruckRampBox, exact: true },
+      { label: 'Resumen de operación', description: 'Conteos y saldos generales', route: '/dashboard/summary', icon: faChartLine, exact: true },
+      { label: 'Búsqueda rápida', description: 'Filtrar y localizar información', route: '/search', icon: faMagnifyingGlass, exact: true },
+    ] },
+    { heading: 'Producción', icon: faFileCircleCheck, items: [
+      { label: 'Producción mensual', description: 'Simular consumo por BOM', route: '/dashboard/production', icon: faFileCircleCheck, exact: true },
+    ] },
+    { heading: 'Exportaciones', icon: faTruckRampBox, items: [
+      { label: 'Exportación', description: 'Salida y registro documental', route: '/dashboard/flow', icon: faTruckRampBox, exact: true },
+      { label: 'Cierre mensual', description: 'Reporte listo para revisión', route: '/dashboard/close', icon: faFileCircleCheck, exact: true },
+    ] },
+    { heading: 'Descargos', icon: faClockRotateLeft, items: [
+      { label: 'PEPS', description: 'Consumo simulado y reversión', route: '/dashboard/peps', icon: faClockRotateLeft, exact: true },
+    ] },
+    { heading: 'Alertas', icon: faTriangleExclamation, items: [
+      { label: 'Excepciones y riesgo', description: 'Alertas y materiales críticos', route: '/dashboard/risk', icon: faTriangleExclamation, exact: true },
+    ] },
+    { heading: 'Conciliación', icon: faUserShield, items: [
+      { label: 'Trazabilidad', description: 'Quién, cuándo y por qué', route: '/dashboard/audit', icon: faUserShield, exact: true },
+      { label: 'Conciliación', description: 'Revisión documental y control', route: '/dashboard/audit', icon: faUserShield, exact: true },
+    ] },
+    { heading: 'Reportes', icon: faFileCircleCheck, items: [
+      { label: 'Anexo 24', description: 'Excel por lote', route: '/dashboard/close', icon: faFileCircleCheck, exact: true },
+      { label: 'Auditoría', description: 'Historial de cambios', route: '/dashboard/audit', icon: faUserShield, exact: true },
+    ] },
+    { heading: 'Configuración', icon: faGear, items: [{ label: 'Configuración', description: 'Razón social y rol actual', route: '/dashboard', icon: faGear, exact: true }] },
   ];
 
   constructor(private readonly router: Router) {}
@@ -295,40 +197,33 @@ export class AppShellComponent implements OnInit {
     this.loadInventorySummary();
   }
 
+  protected get selectedRfcLabel(): string {
+    if (this.selectedRazonSocial === 'all') return 'Vista consolidada';
+    return this.razonSociales.find((option) => option.nombre === this.selectedRazonSocial)?.rfc ?? '—';
+  }
+
   protected get alertItems(): AlertItem[] {
     const rows = this.inventorySummary?.materiales ?? [];
     const seen = new Set<string>();
     return rows
-      .filter((row) => row.diasRestantes <= 90)
-      .map((row) => ({
-        ...row,
-        accionSugerida: this.suggestAction(row.diasRestantes),
-      }))
-      .filter((row) => {
+      .filter((row: DashboardMaterialRow) => row.diasRestantes <= 90)
+      .map((row: DashboardMaterialRow) => ({ ...row, accionSugerida: this.suggestAction(row.diasRestantes) }))
+      .filter((row: AlertItem) => {
         const key = `${row.material}|${row.fechaVencimiento ?? ''}|${row.accionSugerida}`;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
       })
-      .sort((a, b) => a.diasRestantes - b.diasRestantes);
+      .sort((a: AlertItem, b: AlertItem) => a.diasRestantes - b.diasRestantes);
   }
 
   protected toggleAlerts(): void {
     this.alertsOpen = !this.alertsOpen;
-    if (this.alertsOpen && !this.inventorySummary) {
-      this.loadInventorySummary();
-    }
+    if (this.alertsOpen && !this.inventorySummary) this.loadInventorySummary();
   }
 
   private loadInventorySummary(): void {
-    this.service.inventorySummary().subscribe({
-      next: (data) => {
-        this.inventorySummary = data;
-      },
-      error: () => {
-        this.inventorySummary = null;
-      },
-    });
+    this.service.inventorySummary().subscribe({ next: (data) => (this.inventorySummary = data), error: () => (this.inventorySummary = null) });
   }
 
   private suggestAction(diasRestantes: number): AlertItem['accionSugerida'] {
@@ -337,9 +232,19 @@ export class AppShellComponent implements OnInit {
     return 'exportar';
   }
 
-  protected toggleSidebar(): void {
-    this.isSidebarOpen = !this.isSidebarOpen;
+  protected changeCompanyFilter(value: string): void {
+    this.selectedRazonSocial = value || 'all';
+    this.service.setCompanyFilter(this.selectedRazonSocial);
+    this.loadInventorySummary();
+    this.alertsOpen = false;
   }
+
+  protected changeRole(value: string): void {
+    this.selectedRole = value === 'Consulta' ? 'Consulta' : 'Especialista';
+    this.roleService.setSelectedRole(this.selectedRole);
+  }
+
+  protected toggleSidebar(): void { this.isSidebarOpen = !this.isSidebarOpen; }
 
   protected toggleGroup(groupHeading: string): void {
     if (!this.isSidebarOpen) {
@@ -347,26 +252,10 @@ export class AppShellComponent implements OnInit {
       this.expandedGroups.add(groupHeading);
       return;
     }
-
-    if (this.expandedGroups.has(groupHeading)) {
-      this.expandedGroups.delete(groupHeading);
-      return;
-    }
-
-    this.expandedGroups.add(groupHeading);
+    if (this.expandedGroups.has(groupHeading)) this.expandedGroups.delete(groupHeading); else this.expandedGroups.add(groupHeading);
   }
 
-  protected isGroupExpanded(groupHeading: string): boolean {
-    return this.expandedGroups.has(groupHeading);
-  }
-
-  protected isGroupActive(group: SidebarGroup): boolean {
-    return group.items.some((item) => this.router.url === item.route);
-  }
-
-  protected collapseOnMobile(): void {
-    if (typeof window !== 'undefined' && window.innerWidth <= 980) {
-      this.isSidebarOpen = false;
-    }
-  }
+  protected isGroupExpanded(groupHeading: string): boolean { return this.expandedGroups.has(groupHeading); }
+  protected isGroupActive(group: SidebarGroup): boolean { return group.items.some((item) => this.router.url === item.route); }
+  protected collapseOnMobile(): void { if (typeof window !== 'undefined' && window.innerWidth <= 980) this.isSidebarOpen = false; }
 }

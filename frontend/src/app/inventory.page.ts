@@ -27,6 +27,36 @@ import { CollectionSnapshot, ImmexRecord } from './models';
         </div>
       </section>
 
+      <section class="card case-card" *ngIf="!searchOnly">
+        <div class="card-head">
+          <h2>Casos de datos ficticios</h2>
+          <span>Separados por planta y razón social</span>
+        </div>
+        <div class="case-grid">
+          <article class="case-item" *ngFor="let item of demoCases">
+            <div class="case-top">
+              <div>
+                <p class="case-kicker">{{ item.kicker }}</p>
+                <h3>{{ item.title }}</h3>
+              </div>
+              <span class="case-pill">{{ item.total }} registros</span>
+            </div>
+            <p class="case-text">{{ item.description }}</p>
+            <div class="case-stats">
+              <span>Vigentes: {{ item.vigentes }}</span>
+              <span>Por vencer: {{ item.porVencer }}</span>
+              <span>Vencidos: {{ item.vencidos }}</span>
+            </div>
+            <div class="case-chips">
+              <span class="badge" *ngFor="let company of item.companies">{{ company }}</span>
+            </div>
+            <ul class="case-list">
+              <li *ngFor="let material of item.materials">{{ material }}</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
       <section class="card import-card" *ngIf="!searchOnly">
         <div class="card-head">
           <h2>Captura de pedimento de importación</h2>
@@ -49,8 +79,13 @@ import { CollectionSnapshot, ImmexRecord } from './models';
             <span>Razón social</span>
             <select [(ngModel)]="importFormModel.razonSocial" name="razonSocial" required>
               <option value="">Selecciona una razón social</option>
-              <option *ngFor="let rs of razonSociales" [value]="rs">{{ rs }}</option>
+              <option *ngFor="let rs of razonSociales" [value]="rs.nombre">{{ rs.nombre }} · {{ rs.rfc }}</option>
             </select>
+          </label>
+
+          <label>
+            <span>RFC</span>
+            <input [(ngModel)]="importFormModel.rfc" name="rfc" required placeholder="ASN9403159K2" />
           </label>
 
           <div class="partidas-head">
@@ -66,18 +101,34 @@ import { CollectionSnapshot, ImmexRecord } from './models';
               </div>
               <div class="two-cols">
                 <label>
+                  <span>Partida</span>
+                  <input [(ngModel)]="partida.partida" [name]="'partida' + i" required placeholder="01" />
+                </label>
+                <label>
                   <span>Material</span>
                   <input [(ngModel)]="partida.material" [name]="'material' + i" required placeholder="Resina ABS natural" />
                 </label>
+              </div>
+              <div class="two-cols">
+                <label>
+                  <span>Unidad</span>
+                  <input [(ngModel)]="partida.unidad" [name]="'unidad' + i" required placeholder="kg" />
+                </label>
+                <label>
+                  <span>Régimen aduanero</span>
+                  <input [(ngModel)]="partida.regimenAduanero" [name]="'regimenAduanero' + i" required placeholder="IMMEX temporal" />
+                </label>
+              </div>
+              <div class="two-cols">
                 <label>
                   <span>Cantidad</span>
                   <input [(ngModel)]="partida.cantidad" [name]="'cantidad' + i" type="number" min="1" required />
                 </label>
+                <label>
+                  <span>Valor unitario en MXN</span>
+                  <input [(ngModel)]="partida.valorUnitarioMxn" [name]="'valorUnitarioMxn' + i" type="number" step="0.01" min="0.01" required />
+                </label>
               </div>
-              <label>
-                <span>Valor unitario en MXN</span>
-                <input [(ngModel)]="partida.valorUnitarioMxn" [name]="'valorUnitarioMxn' + i" type="number" step="0.01" min="0.01" required />
-              </label>
             </article>
           </div>
 
@@ -153,12 +204,39 @@ import { CollectionSnapshot, ImmexRecord } from './models';
               <input [(ngModel)]="form.pedimento" name="pedimento" required placeholder="PI-2401-001" />
             </label>
             <label>
+              <span>Razón social</span>
+              <select [(ngModel)]="form.razonSocial" name="razonSocial" required>
+                <option value="">Selecciona una razón social</option>
+                <option *ngFor="let option of razonSociales" [value]="option.nombre">{{ option.nombre }} · {{ option.rfc }}</option>
+              </select>
+            </label>
+            <label>
+              <span>RFC</span>
+              <input [(ngModel)]="form.rfc" name="rfc" required placeholder="ASN9403159K2" />
+            </label>
+            <label>
+              <span>Partida</span>
+              <input [(ngModel)]="form.partida" name="partida" required placeholder="01" />
+            </label>
+            <label>
+              <span>Unidad</span>
+              <input [(ngModel)]="form.unidad" name="unidad" required placeholder="kg" />
+            </label>
+            <label>
+              <span>Régimen aduanero</span>
+              <input [(ngModel)]="form.regimenAduanero" name="regimenAduanero" required placeholder="IMMEX temporal" />
+            </label>
+            <label>
               <span>Material</span>
               <input [(ngModel)]="form.material" name="material" required placeholder="Resina ABS" />
             </label>
             <label>
               <span>Proveedor / Planta</span>
               <input [(ngModel)]="form.proveedor" name="proveedor" required placeholder="Planta norte" />
+            </label>
+            <label>
+              <span>Auditor / responsable</span>
+              <input [(ngModel)]="form.auditor" name="auditor" placeholder="Especialista aduanal" required />
             </label>
             <label>
               <span>Movimiento</span>
@@ -176,7 +254,7 @@ import { CollectionSnapshot, ImmexRecord } from './models';
               </label>
               <label>
                 <span>Valor unitario</span>
-                <input [(ngModel)]="form.valorUnitario" name="valorUnitario" type="number" step="0.01" min="0" required />
+                <input [(ngModel)]="form.valorUnitario" name="valorUnitario" type="number" step="0.01" min="0.01" placeholder="1.00" required />
               </label>
             </div>
             <div class="two-cols">
@@ -189,28 +267,22 @@ import { CollectionSnapshot, ImmexRecord } from './models';
                 <input [(ngModel)]="form.fechaVencimiento" name="fechaVencimiento" type="date" required />
               </label>
             </div>
-            <div class="two-cols">
-              <label>
-                <span>Estatus</span>
-                <select [(ngModel)]="form.status" name="status" required>
-                  <option value="Vigente">Vigente</option>
-                  <option value="Por vencer">Por vencer</option>
-                  <option value="Cerrado">Cerrado</option>
-                  <option value="Conciliación">Conciliación</option>
-                </select>
-              </label>
-              <label>
-                <span>Auditor</span>
-                <input [(ngModel)]="form.auditor" name="auditor" placeholder="Especialista aduanal" />
-              </label>
-            </div>
+            <label>
+              <span>Estatus</span>
+              <select [(ngModel)]="form.status" name="status" required>
+                <option value="Vigente">Vigente</option>
+                <option value="Por vencer">Por vencer</option>
+                <option value="Cerrado">Cerrado</option>
+                <option value="Conciliación">Conciliación</option>
+              </select>
+            </label>
             <label class="check-row">
               <input [(ngModel)]="form.activo" name="activo" type="checkbox" />
               <span>Activo</span>
             </label>
             <label>
               <span>Notas</span>
-              <textarea [(ngModel)]="form.notas" name="notas" rows="3" placeholder="Observaciones del pedimento"></textarea>
+              <textarea [(ngModel)]="form.notas" name="notas" rows="3" placeholder="Observaciones de conciliación" required></textarea>
             </label>
             <div class="actions">
               <button class="primary" type="submit">{{ editingId ? 'Actualizar' : 'Guardar' }}</button>
@@ -233,6 +305,7 @@ import { CollectionSnapshot, ImmexRecord } from './models';
             <thead>
               <tr>
                 <th>Pedimento</th>
+                <th>Partida</th>
                 <th>Material</th>
                 <th>Movimiento</th>
                 <th>Cantidad</th>
@@ -246,11 +319,14 @@ import { CollectionSnapshot, ImmexRecord } from './models';
               <tr *ngFor="let record of filteredRecords">
                 <td>
                   <strong>{{ record.pedimento }}</strong>
+                  <div class="muted">{{ record.rfc }}</div>
                   <div class="muted">{{ record.proveedor }}</div>
                 </td>
+                <td>{{ record.partida || '—' }}</td>
                 <td>
                   <strong>{{ record.material }}</strong>
                   <div class="muted" *ngIf="record.auditor">{{ record.auditor }}</div>
+                  <div class="muted">{{ record.unidad || '—' }} · {{ record.regimenAduanero || '—' }}</div>
                 </td>
                 <td>{{ record.movimiento }}</td>
                 <td>{{ record.cantidad }}</td>
@@ -269,7 +345,7 @@ import { CollectionSnapshot, ImmexRecord } from './models';
                 </td>
               </tr>
               <tr *ngIf="!filteredRecords.length">
-                <td colspan="8" class="empty">No hay registros para mostrar.</td>
+                <td colspan="9" class="empty">No hay registros para mostrar.</td>
               </tr>
             </tbody>
           </table>
@@ -299,6 +375,41 @@ export class InventoryPageComponent implements OnInit {
   private readonly router = inject(Router);
   readonly searchOnly = inject(ActivatedRoute).snapshot.data['searchOnly'] === true;
 
+  demoCases = [
+    {
+      kicker: 'Caso 1',
+      title: 'Planta de inyección con merma y reciclado',
+      description: 'Resina ABS y regranulado con lotes frescos, material por vencer y un lote vencido para simular el cierre de merma y retorno interno.',
+      total: 3,
+      vigentes: 1,
+      porVencer: 1,
+      vencidos: 1,
+      companies: ['Aerosistemas del Norte, S.A. de C.V.'],
+      materials: ['Resina ABS natural', 'Regranulado ABS reciclado', 'Pigmento masterbatch negro'],
+    },
+    {
+      kicker: 'Caso 2',
+      title: 'Planta de arneses con BOM amplio',
+      description: 'Arnés automotriz con múltiples componentes: conectores, terminales, cinta, grommets y consumibles, con inventario cruzado entre estados.',
+      total: 3,
+      vigentes: 1,
+      porVencer: 1,
+      vencidos: 1,
+      companies: ['Componentes Industriales del Bajío, S.A. de C.V.'],
+      materials: ['Conector 12 pines', 'Terminal hembra 6.3 mm', 'Cinta PVC automotriz'],
+    },
+    {
+      kicker: 'Caso 3',
+      title: 'Empresa con 2 razones sociales',
+      description: 'Vista compartida de dos empresas para validar que el selector global mantiene la separación y permite revisar ambas razones sociales sin mezclar saldos.',
+      total: 6,
+      vigentes: 2,
+      porVencer: 2,
+      vencidos: 2,
+      companies: ['Aerosistemas del Norte, S.A. de C.V.', 'Componentes Industriales del Bajío, S.A. de C.V.'],
+      materials: ['Inventario por empresa separado', 'Lotes vigentes / por vencer / vencidos', 'Consulta consolidada verificada'],
+    },
+  ];
   records: ImmexRecord[] = [];
   filteredRecords: ImmexRecord[] = [];
   collections: CollectionSnapshot[] = [];
@@ -310,8 +421,8 @@ export class InventoryPageComponent implements OnInit {
   statusFilter = 'Todos';
   movementFilter = 'Todos';
   razonSociales = [
-    'Aerosistemas del Norte, S.A. de C.V.',
-    'Componentes Industriales del Bajío, S.A. de C.V.',
+    { nombre: 'Aerosistemas del Norte, S.A. de C.V.', rfc: 'ASN9403159K2' },
+    { nombre: 'Componentes Industriales del Bajío, S.A. de C.V.', rfc: 'CIB0209187Q4' },
   ];
   importFormModel = this.emptyImportForm();
   form: ImmexRecord = this.emptyForm();
@@ -366,7 +477,7 @@ export class InventoryPageComponent implements OnInit {
   }
 
   addPartida(): void {
-    this.importFormModel.partidas.push({ material: '', cantidad: 1, valorUnitarioMxn: 0 });
+    this.importFormModel.partidas.push({ partida: '', material: '', unidad: '', regimenAduanero: '', cantidad: 1, valorUnitarioMxn: 0 });
   }
 
   removePartida(index: number): void {
@@ -377,16 +488,20 @@ export class InventoryPageComponent implements OnInit {
   submitImport(): void {
     this.importError = '';
     const payload = {
-      ...this.importFormModel,
       numeroPedimento: this.importFormModel.numeroPedimento.trim(),
+      fecha: this.importFormModel.fecha,
       razonSocial: this.importFormModel.razonSocial.trim(),
+      rfc: this.importFormModel.rfc.trim(),
       partidas: this.importFormModel.partidas.map((partida) => ({
+        partida: partida.partida.trim(),
         material: partida.material.trim(),
+        unidad: partida.unidad.trim(),
+        regimenAduanero: partida.regimenAduanero.trim(),
         cantidad: Number(partida.cantidad),
         valorUnitarioMxn: Number(partida.valorUnitarioMxn),
       })),
     };
-    if (!payload.numeroPedimento || !payload.fecha || !payload.razonSocial || payload.partidas.some((p) => !p.material || !p.cantidad || !p.valorUnitarioMxn)) {
+    if (!payload.numeroPedimento || !payload.fecha || !payload.razonSocial || !payload.rfc || payload.partidas.some((p) => !p.partida || !p.material || !p.unidad || !p.regimenAduanero || !p.cantidad || !p.valorUnitarioMxn)) {
       this.importError = 'Completa los campos obligatorios de la captura.';
       return;
     }
@@ -397,7 +512,7 @@ export class InventoryPageComponent implements OnInit {
         this.load();
         this.loadCollections();
       },
-      error: () => {
+      error: (err: unknown) => {
         this.importError = 'No se pudo guardar la importación.';
       },
     });
@@ -413,7 +528,7 @@ export class InventoryPageComponent implements OnInit {
   applyFilters(): void {
     const term = this.searchTerm.trim().toLowerCase();
     this.filteredRecords = this.records.filter((record) => {
-      const matchesSearch = !term || [record.pedimento, record.material, record.proveedor, record.auditor ?? '']
+      const matchesSearch = !term || [record.pedimento, record.material, record.proveedor, record.auditor ?? '', record.rfc ?? '', record.partida ?? '']
         .join(' ')
         .toLowerCase()
         .includes(term);
@@ -474,7 +589,11 @@ export class InventoryPageComponent implements OnInit {
   }
 
   formatDate(value: string): string {
-    return new Intl.DateTimeFormat('es-MX').format(new Date(value + 'T00:00:00'));
+    const date = new Date(value + 'T00:00:00');
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
   }
 
   private emptyForm(): ImmexRecord {
@@ -488,13 +607,18 @@ export class InventoryPageComponent implements OnInit {
       proveedor: '',
       movimiento: 'Entrada',
       cantidad: 1,
-      valorUnitario: 0,
+      valorUnitario: '' as any,
       fechaIngreso: isoToday,
       fechaVencimiento: due.toISOString().slice(0, 10),
       status: 'Vigente',
       activo: true,
       notas: '',
       auditor: 'Sistema',
+      razonSocial: '',
+      rfc: '',
+      partida: '',
+      unidad: '',
+      regimenAduanero: '',
     };
   }
 
@@ -503,7 +627,8 @@ export class InventoryPageComponent implements OnInit {
       numeroPedimento: '',
       fecha: new Date().toISOString().slice(0, 10),
       razonSocial: '',
-      partidas: [{ material: '', cantidad: 1, valorUnitarioMxn: 0 }],
+      rfc: '',
+      partidas: [{ partida: '', material: '', unidad: '', regimenAduanero: '', cantidad: 1, valorUnitarioMxn: 0 }],
     };
   }
 
@@ -513,6 +638,11 @@ export class InventoryPageComponent implements OnInit {
       material: this.form.material.trim(),
       proveedor: this.form.proveedor.trim(),
       movimiento: this.form.movimiento,
+      razonSocial: (this.form.razonSocial ?? '').trim(),
+      rfc: (this.form.rfc ?? '').trim(),
+      partida: (this.form.partida ?? '').trim(),
+      unidad: (this.form.unidad ?? '').trim(),
+      regimenAduanero: (this.form.regimenAduanero ?? '').trim(),
       cantidad: Number(this.form.cantidad),
       valorUnitario: Number(this.form.valorUnitario),
       fechaIngreso: this.form.fechaIngreso,

@@ -14,6 +14,11 @@ public class ImmexRecord {
   private String material;
   private String proveedor;
   private String movimiento;
+  private String razonSocial;
+  private String rfc;
+  private String partida;
+  private String unidad;
+  private String regimenAduanero;
   private Integer cantidad;
   private BigDecimal valorUnitario;
   private LocalDate fechaIngreso;
@@ -33,6 +38,11 @@ public class ImmexRecord {
       String material,
       String proveedor,
       String movimiento,
+      String razonSocial,
+      String rfc,
+      String partida,
+      String unidad,
+      String regimenAduanero,
       Integer cantidad,
       BigDecimal valorUnitario,
       LocalDate fechaIngreso,
@@ -48,6 +58,11 @@ public class ImmexRecord {
     this.material = material;
     this.proveedor = proveedor;
     this.movimiento = movimiento;
+    this.razonSocial = razonSocial;
+    this.rfc = rfc;
+    this.partida = partida;
+    this.unidad = unidad;
+    this.regimenAduanero = regimenAduanero;
     this.cantidad = cantidad;
     this.valorUnitario = valorUnitario;
     this.fechaIngreso = fechaIngreso;
@@ -70,6 +85,16 @@ public class ImmexRecord {
   public void setProveedor(String proveedor) { this.proveedor = proveedor; }
   public String getMovimiento() { return movimiento; }
   public void setMovimiento(String movimiento) { this.movimiento = movimiento; }
+  public String getRazonSocial() { return razonSocial; }
+  public void setRazonSocial(String razonSocial) { this.razonSocial = razonSocial; }
+  public String getRfc() { return rfc; }
+  public void setRfc(String rfc) { this.rfc = rfc; }
+  public String getPartida() { return partida; }
+  public void setPartida(String partida) { this.partida = partida; }
+  public String getUnidad() { return unidad; }
+  public void setUnidad(String unidad) { this.unidad = unidad; }
+  public String getRegimenAduanero() { return regimenAduanero; }
+  public void setRegimenAduanero(String regimenAduanero) { this.regimenAduanero = regimenAduanero; }
   public Integer getCantidad() { return cantidad; }
   public void setCantidad(Integer cantidad) { this.cantidad = cantidad; }
   public BigDecimal getValorUnitario() { return valorUnitario; }

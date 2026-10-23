@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { ImmexService } from './immex.service';
-import { AuditEvent, DashboardInventorySummary, ImmexDashboardSummary, ImmexRecord } from './models';
+import { AuditEvent, DashboardInventorySummary, ImmexDashboardSummary, ImmexRecord, LoteMaterialView } from './models';
 
 @Component({
   selector: 'app-auditor-page',
@@ -18,8 +18,10 @@ import { AuditEvent, DashboardInventorySummary, ImmexDashboardSummary, ImmexReco
         <div class="metrics">
           <div><span>Registros</span><strong>{{ summary?.totalRecords ?? records.length }}</strong></div>
           <div><span>Saldo total</span><strong>{{ inventorySummary?.saldoTotalMxn | currency:'MXN':'symbol':'1.0-0' }}</strong></div>
+          <div><span>Monto en riesgo</span><strong>{{ (inventorySummary?.montoVencidoMxn ?? 0) + (inventorySummary?.montoPorVencerMxn ?? 0) | currency:'MXN':'symbol':'1.0-0' }}</strong></div>
           <div><span>Eventos</span><strong>{{ auditEvents.length }}</strong></div>
           <div><span>Alertas</span><strong>{{ inventorySummary?.materiales?.filter(item => item.diasRestantes <= 90).length ?? 0 }}</strong></div>
+          <div><span>Conector 12p</span><strong>{{ conector12Rows[0]?.diasRestantes ?? '—' }}</strong><small>{{ conector12Rows[0]?.fechaVencimiento ? (conector12Rows[0].fechaVencimiento | date:'dd/MM/yyyy') : '—' }}</small></div>
         </div>
       </header>
 
@@ -43,7 +45,7 @@ import { AuditEvent, DashboardInventorySummary, ImmexDashboardSummary, ImmexReco
               <tr *ngFor="let row of (inventorySummary?.materiales ?? [])">
                 <td><strong>{{ row.material }}</strong></td>
                 <td>{{ row.saldo }}</td>
-                <td>{{ row.fechaVencimiento ? (row.fechaVencimiento | date:'shortDate') : '—' }}</td>
+                <td>{{ row.fechaVencimiento ? formatDate(row.fechaVencimiento) : '—' }}</td>
                 <td>{{ row.montoEnRiesgo | currency:'MXN':'symbol':'1.0-0' }}</td>
                 <td>{{ row.estado }} · {{ row.diasRestantes }} días</td>
               </tr>
@@ -63,7 +65,7 @@ import { AuditEvent, DashboardInventorySummary, ImmexDashboardSummary, ImmexReco
         <div class="audit-list" *ngIf="auditEvents.length; else noAudit">
           <article class="audit-item" *ngFor="let event of auditEvents">
             <strong>{{ event.action }} · {{ event.entityType }}</strong>
-            <span>{{ event.actor }} · {{ event.reason || 'Sin motivo' }} · {{ event.createdAt | date:'short' }}</span>
+            <span>{{ event.actor || '—' }} · {{ event.reason || 'Motivo no informado' }} · {{ event.createdAt ? (event.createdAt | date:'dd/MM/yyyy HH:mm') : '—' }}</span>
             <p>{{ event.details }}</p>
           </article>
         </div>
@@ -115,9 +117,18 @@ export class AuditorPageComponent implements OnInit {
   summary: ImmexDashboardSummary | null = null;
   inventorySummary: DashboardInventorySummary | null = null;
   auditEvents: AuditEvent[] = [];
+  conector12Rows: LoteMaterialView[] = [];
 
   ngOnInit(): void {
     this.loadAll();
+  }
+
+  private formatDate(value: string): string {
+    const date = new Date(value + 'T00:00:00');
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
   }
 
   private loadAll(): void {
@@ -125,5 +136,6 @@ export class AuditorPageComponent implements OnInit {
     this.service.summary().subscribe({ next: (data) => { this.summary = data; this.cdr.markForCheck(); }, error: () => (this.summary = null) });
     this.service.inventorySummary().subscribe({ next: (data) => { this.inventorySummary = data; this.cdr.markForCheck(); }, error: () => (this.inventorySummary = null) });
     this.service.auditEvents().subscribe({ next: (data) => { this.auditEvents = data; this.cdr.markForCheck(); }, error: () => (this.auditEvents = []) });
+    this.service.lotes('Conector 12 pines').subscribe({ next: (data) => { this.conector12Rows = data; this.cdr.markForCheck(); }, error: () => (this.conector12Rows = []) });
   }
 }

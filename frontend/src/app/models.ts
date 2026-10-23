@@ -12,6 +12,11 @@ export interface ImmexRecord {
   activo: boolean;
   notas?: string;
   auditor?: string;
+  razonSocial?: string;
+  rfc?: string;
+  partida?: string;
+  unidad?: string;
+  regimenAduanero?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -35,9 +40,72 @@ export interface ImmexCloseReport {
   totalRecords: number;
   openRecords: number;
   expiringSoonCount: number;
-  riskTotal: number;
+  saldoTotalMxn: number;
+  montoEnRiesgoMxn: number;
   pepsCandidate?: ImmexRecord | null;
   warnings: string[];
+  pendingItems: ClosePendingItem[];
+  estado: string;
+}
+
+export interface ClosePendingItem {
+  key: string;
+  label: string;
+  count: number;
+  href: string;
+}
+
+export interface CloseWorkflowStep {
+  key: string;
+  label: string;
+  responsable: string;
+  estado: string;
+  pendiente: string;
+  detalle: string;
+  updatedBy?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface CloseMonthlyHistoryItem {
+  stepKey: string;
+  stepLabel: string;
+  actor: string;
+  changedAt: string;
+  field: string;
+  oldValue: string;
+  newValue: string;
+  reason: string;
+}
+
+export interface CloseMonthlyStatus {
+  periodo: string;
+  firmado: boolean;
+  firmadoPor?: string | null;
+  firmadoAt?: string | null;
+  canClose: boolean;
+  hasCriticalErrors: boolean;
+  progressPct: number;
+  pendingCount: number;
+  pendingItems: string[];
+  steps: CloseWorkflowStep[];
+  history: CloseMonthlyHistoryItem[];
+  currentResponsible: string;
+}
+
+export interface CloseMonthlyStateResponse {
+  status: CloseMonthlyStatus;
+  canSign: boolean;
+  canDownloadAnexo24: boolean;
+}
+
+export interface PepsMovement {
+  loteId: string;
+  pedimento: string;
+  material: string;
+  cantidad: number;
+  saldoAntes: number;
+  saldoDespues: number;
+  tipoMovimiento: string;
 }
 
 export interface PepsOperationResult {
@@ -47,6 +115,7 @@ export interface PepsOperationResult {
   completed: boolean;
   message: string;
   processedAt: string;
+  movimientos: PepsMovement[];
 }
 
 export interface AuditEvent {
@@ -68,7 +137,14 @@ export interface CollectionSnapshot {
 
 export interface DashboardMaterialRow {
   material: string;
+  pedimento: string;
+  rfc: string;
+  partida: string;
+  unidad: string;
+  regimenAduanero: string;
   saldo: number;
+  saldoFisico: number;
+  saldoAduaneroPendiente: number;
   fechaVencimiento: string | null;
   montoEnRiesgo: number;
   diasRestantes: number;
@@ -82,6 +158,11 @@ export interface DashboardInventorySummary {
   materiales: DashboardMaterialRow[];
 }
 
+export interface Anexo24Query {
+  razonSocial?: string;
+  mes?: string;
+}
+
 export interface ProduccionMensualRequest {
   producto: string;
   cantidadProducida: number;
@@ -92,6 +173,8 @@ export interface ProduccionMensualRequest {
 
 export interface ProduccionMensualLine {
   material: string;
+  cantidadBom: number;
+  mermaIncluida: number;
   requerido: number;
   descargado: number;
   saldoPendiente: number;
@@ -106,4 +189,48 @@ export interface ProduccionMensualResult {
   movimientosDescarga: number;
   completado: boolean;
   message: string;
+}
+
+export interface RazonSocialOption {
+  nombre: string;
+  rfc: string;
+  programaImmex: string;
+  activo: boolean;
+}
+
+export interface LoteMaterialView {
+  id: string;
+  material: string;
+  pedimento: string;
+  razonSocial: string;
+  rfc: string;
+  partida: string;
+  unidad: string;
+  regimenAduanero: string;
+  saldo: number;
+  saldoFisico: number;
+  saldoAduaneroPendiente: number;
+  fechaEntrada: string | null;
+  fechaVencimiento: string | null;
+  diasRestantes: number;
+  estado: string;
+  valorUnitarioMxn: number;
+  tipoMaterial: string;
+}
+
+export interface ComplianceRecommendation {
+  problem: string;
+  cause: string;
+  impact: string;
+  suggestedAction: string;
+  evidence: string;
+  factBased: boolean;
+}
+
+export interface ComplianceAssistantResponse {
+  scope: string;
+  summary: string;
+  recommendations: ComplianceRecommendation[];
+  facts: string[];
+  limitations: string[];
 }

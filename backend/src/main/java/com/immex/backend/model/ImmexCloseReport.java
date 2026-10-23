@@ -1,39 +1,59 @@
 package com.immex.backend.model;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import com.immex.backend.model.CloseMonthlyHistoryItem;
 
 public class ImmexCloseReport {
   private final Instant generatedAt;
   private final long totalRecords;
   private final long openRecords;
   private final long expiringSoonCount;
-  private final long riskTotal;
+  private final BigDecimal saldoTotalMxn;
+  private final BigDecimal montoEnRiesgoMxn;
   private final ImmexRecord pepsCandidate;
   private final List<String> warnings;
+  private final List<ClosePendingItem> pendingItems;
+  private final List<String> steps;
+  private final List<CloseMonthlyHistoryItem> history;
+  private final String estado;
 
   public ImmexCloseReport(
       Instant generatedAt,
       long totalRecords,
       long openRecords,
       long expiringSoonCount,
-      long riskTotal,
+      BigDecimal saldoTotalMxn,
+      BigDecimal montoEnRiesgoMxn,
       ImmexRecord pepsCandidate,
-      List<String> warnings) {
+      List<String> warnings,
+      List<ClosePendingItem> pendingItems,
+      String estado) {
     this.generatedAt = generatedAt;
     this.totalRecords = totalRecords;
     this.openRecords = openRecords;
     this.expiringSoonCount = expiringSoonCount;
-    this.riskTotal = riskTotal;
+    this.saldoTotalMxn = saldoTotalMxn;
+    this.montoEnRiesgoMxn = montoEnRiesgoMxn;
     this.pepsCandidate = pepsCandidate;
     this.warnings = warnings;
+    this.pendingItems = pendingItems;
+    this.steps = List.of();
+    this.history = List.of();
+    this.estado = estado;
   }
 
   public Instant getGeneratedAt() { return generatedAt; }
   public long getTotalRecords() { return totalRecords; }
   public long getOpenRecords() { return openRecords; }
   public long getExpiringSoonCount() { return expiringSoonCount; }
-  public long getRiskTotal() { return riskTotal; }
+  public BigDecimal getSaldoTotalMxn() { return saldoTotalMxn; }
+  public BigDecimal getMontoEnRiesgoMxn() { return montoEnRiesgoMxn; }
   public ImmexRecord getPepsCandidate() { return pepsCandidate; }
   public List<String> getWarnings() { return warnings; }
+  public List<ClosePendingItem> getPendingItems() { return pendingItems; }
+  public List<String> getSteps() { return steps; }
+  public List<CloseMonthlyHistoryItem> getHistory() { return history; }
+  public String getEstado() { return estado; }
 }
