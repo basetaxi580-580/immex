@@ -1,121 +1,153 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faArrowRight, faBoxesStacked, faCheck, faCircleExclamation, faFileCircleCheck, faFileInvoice, faRotate, faShieldHalved, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
-import { ComplianceAssistantResponse } from './models';
-import { ImmexService } from './immex.service';
+import { faArrowRight, faCheck, faFileInvoice, faFileLines, faRotate, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 
-type DemoFinding = { level: 'critical' | 'review' | 'ready'; title: string; detail: string; evidence: string; action: string };
+type ImportPartida = {
+  partida: string;
+  material: string;
+  unidad: string;
+  regimenAduanero: string;
+  cantidad: number;
+  valorUnitarioMxn: number;
+};
+
+type ImportDraft = {
+  numeroPedimento: string;
+  fecha: string;
+  razonSocial: string;
+  rfc: string;
+  partidas: ImportPartida[];
+};
 
 @Component({
   selector: 'app-assistant-page',
   standalone: true,
-  imports: [CommonModule, FontAwesomeModule],
+  imports: [CommonModule, FormsModule, FontAwesomeModule, RouterLink],
   template: `
-    <main class="copilot-page">
-      <section class="copilot-hero">
-        <div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div>
-        <div class="hero-content">
-          <div class="copilot-brand"><span class="brand-mark"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></span><span>IMMEX <b>INTELLIGENCE</b></span><span class="prototype-chip">DEMO INTERACTIVA</span></div>
-          <p class="hero-kicker">TU OPERACIÓN, CON MÁS CLARIDAD</p>
-          <h1>Un copiloto para anticiparte.<br><span>No para reemplazarte.</span></h1>
-          <p class="hero-description">Imagina revisar tus pedimentos, inventario y alertas en un solo lugar. La IA encuentra señales, explica qué encontró y deja la decisión final en manos de tu equipo.</p>
-          <div class="hero-actions"><button type="button" class="hero-button" (click)="runDemo()"><fa-icon [icon]="faSparkles"></fa-icon>{{ demoComplete ? 'Volver a ejecutar demo' : 'Ver análisis de ejemplo' }}<fa-icon [icon]="faArrowRight"></fa-icon></button><span class="hero-note"><fa-icon [icon]="faShieldHalved"></fa-icon> Revisión humana antes de cada cambio</span></div>
+    <main class="capture-demo">
+      <header class="demo-heading">
+        <div class="heading-copy">
+          <a class="back-link" routerLink="/inventory">Inventarios / Pedimentos</a>
+          <h1>Del pedimento a tu inventario</h1>
+          <p>Prueba cómo el copiloto identifica los datos y los prepara para tu captura.</p>
         </div>
-        <div class="hero-visual" aria-hidden="true"><div class="visual-ring ring-outer"></div><div class="visual-ring ring-inner"></div><div class="visual-core"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></div><div class="orbit-node node-a"><fa-icon [icon]="faFileInvoice"></fa-icon><span>Pedimentos</span></div><div class="orbit-node node-b"><fa-icon [icon]="faBoxesStacked"></fa-icon><span>Inventario</span></div><div class="orbit-node node-c"><fa-icon [icon]="faShieldHalved"></fa-icon><span>Cumplimiento</span></div><div class="orbit-node node-d"><fa-icon [icon]="faFileCircleCheck"></fa-icon><span>Cierres</span></div></div>
-        <div class="hero-foot"><span><i></i> ASISTENCIA CONTEXTUAL</span><span>DATOS DE TU OPERACIÓN · DECISIONES DE TU EQUIPO</span></div>
+        <span class="demo-badge"><fa-icon [icon]="faWandMagicSparkles"></fa-icon> Demo interactiva</span>
+      </header>
+
+      <section class="demo-intro">
+        <div class="intro-symbol"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></div>
+        <div class="intro-copy"><strong>Menos captura manual. Más tiempo para validar.</strong><span>Simularemos la lectura de un pedimento con una partida de importación temporal.</span></div>
+        <button class="analyze-button" type="button" (click)="analyzeSample()" [disabled]="analyzing"><fa-icon [icon]="analyzing ? faRotate : faWandMagicSparkles" [class.spin]="analyzing"></fa-icon>{{ analyzing ? 'Leyendo ejemplo…' : analyzed ? 'Volver a simular' : 'Simular lectura' }}</button>
       </section>
 
-      <section class="workflow-section">
-        <div class="section-heading"><div><p class="eyebrow">ASÍ SE VERÍA EN TU DÍA A DÍA</p><h2>De los datos a una decisión clara</h2><p>Una experiencia diseñada para acompañar el flujo de importaciones sin añadir pasos innecesarios.</p></div><span class="workflow-caption">01 — 03</span></div>
-        <div class="workflow-grid"><article class="workflow-card"><span class="workflow-number">01</span><div class="workflow-icon upload-icon"><fa-icon [icon]="faFileInvoice"></fa-icon></div><h3>Reúne el contexto</h3><p>Pedimentos, partidas y saldos existentes se consultan desde la operación IMMEX.</p><div class="mini-document"><span class="doc-icon"><fa-icon [icon]="faFileInvoice"></fa-icon></span><span><b>Pedimento de importación</b><small>Datos operativos disponibles</small></span><span class="doc-status">LISTO</span></div></article><article class="workflow-card"><span class="workflow-number">02</span><div class="workflow-icon analysis-icon"><fa-icon [icon]="faSparkles"></fa-icon></div><h3>Encuentra señales</h3><p>La revisión cruza fechas, cantidades, campos requeridos y diferencias que merecen atención.</p><div class="signal-list"><span><i class="signal-dot red"></i> 1 incidencia prioritaria</span><span><i class="signal-dot amber"></i> 2 datos por confirmar</span></div></article><article class="workflow-card"><span class="workflow-number">03</span><div class="workflow-icon decision-icon"><fa-icon [icon]="faCheck"></fa-icon></div><h3>Tu equipo decide</h3><p>La plataforma explica cada hallazgo y propone el siguiente paso, sin realizar cambios por su cuenta.</p><div class="decision-line"><span>Recomendación</span><b>Revisar antes de guardar</b><fa-icon [icon]="faArrowRight"></fa-icon></div></article></div>
-      </section>
-
-      <section class="analysis-section" id="demo-analysis">
-        <div class="analysis-head"><div><span class="analysis-tag"><fa-icon [icon]="faSparkles"></fa-icon> VISTA PREVIA DEL COPILOTO</span><h2>Así podría verse una revisión</h2><p>Ejemplo ilustrativo con datos de demostración. Explora cómo se presentarían los hallazgos.</p></div><button type="button" class="refresh-button" (click)="runDemo()" aria-label="Ejecutar demostración"><fa-icon [icon]="faRotate"></fa-icon><span>Ejecutar demo</span></button></div>
-        <div class="analysis-layout">
-          <aside class="analysis-sidebar"><span class="sidebar-label">CENTRO DE ANÁLISIS</span><div class="analysis-profile"><div class="profile-avatar"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></div><div><b>Copiloto IMMEX</b><small>{{ demoComplete ? 'Análisis listo' : 'Esperando análisis' }}</small></div><span class="online-dot"></span></div><div class="scope-box"><span>EMPRESA ANALIZADA</span><b>{{ analysis?.scope || 'Razón social seleccionada' }}</b><small>Contexto de la operación actual</small></div><div class="source-list"><span class="source-title">CAPAS DE ANÁLISIS · EJEMPLO</span><div><fa-icon [icon]="faFileInvoice"></fa-icon> Pedimentos y partidas <b>Contexto</b></div><div><fa-icon [icon]="faBoxesStacked"></fa-icon> Saldos de inventario <b>Contexto</b></div><div><fa-icon [icon]="faShieldHalved"></fa-icon> Reglas de cumplimiento <b>Validación</b></div></div><div class="privacy-note"><fa-icon [icon]="faShieldHalved"></fa-icon><span><b>Control en tus manos</b><small>La revisión es consultiva. No modifica ni guarda registros.</small></span></div></aside>
-          <div class="analysis-main"><div class="analysis-summary" [class.running]="running"><div class="summary-symbol"><fa-icon [icon]="demoComplete ? faSparkles : faCircleExclamation"></fa-icon></div><div class="summary-copy"><span>{{ demoComplete ? 'ANÁLISIS COMPLETADO' : 'LISTO PARA EXPLORAR' }}</span><h3>{{ demoComplete ? (analysis?.summary || 'El copiloto identificó puntos que conviene revisar.') : '¿Qué debería revisar primero?' }}</h3><p>{{ demoComplete ? 'Los hallazgos se basan en la información disponible para la razón social seleccionada.' : 'Ejecuta la demo para ver cómo se convierten los datos en acciones claras y priorizadas.' }}</p></div><div class="summary-score"><strong>{{ demoComplete ? findings.length : '—' }}</strong><span>hallazgos</span></div></div>
-            <div class="findings-heading"><div><h3>Hallazgos sugeridos</h3><span>{{ demoComplete ? 'Ordenados por prioridad' : 'Se mostrarán al ejecutar la demo' }}</span></div><span class="human-review"><fa-icon [icon]="faShieldHalved"></fa-icon> Revisión humana</span></div>
-            <div class="findings-list"><article class="finding-card" *ngFor="let finding of findings; let i = index" [class]="'finding-card ' + finding.level"><div class="finding-index">0{{ i + 1 }}</div><div class="finding-content"><div class="finding-title"><h4>{{ finding.title }}</h4><span [class]="'severity ' + finding.level">{{ finding.level === 'critical' ? 'PRIORITARIO' : finding.level === 'review' ? 'POR CONFIRMAR' : 'INFORMATIVO' }}</span></div><p>{{ finding.detail }}</p><div class="evidence-line"><span>EVIDENCIA</span>{{ finding.evidence }}</div><div class="suggestion-line"><fa-icon [icon]="faSparkles"></fa-icon><span><b>Siguiente paso sugerido</b>{{ finding.action }}</span></div></div></article>
-              <div class="empty-analysis" *ngIf="!findings.length && !running"><div><fa-icon [icon]="faWandMagicSparkles"></fa-icon></div><b>Tu análisis aparecerá aquí</b><span>Hallazgos explicados, evidencia y sugerencias para revisar.</span></div>
-              <div class="empty-analysis loading-analysis" *ngIf="running"><div class="loader-orbit"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></div><b>Revisando contexto IMMEX…</b><span>Priorizando alertas y conectando cada hallazgo con su evidencia.</span></div>
-            </div>
-            <div class="analysis-disclaimer"><fa-icon [icon]="faShieldHalved"></fa-icon><span>Las recomendaciones son orientativas y requieren validación del especialista. El copiloto no firma cierres ni modifica información.</span></div>
+      <section class="exercise-layout">
+        <aside class="source-pane">
+          <div class="pane-heading"><div><span class="step-label">DOCUMENTO DE EJEMPLO</span><h2>Pedimento de importación</h2></div><span class="pdf-chip">PDF</span></div>
+          <div class="paper-wrap">
+            <article class="paper-preview" [class.scanned]="analyzed">
+              <div class="paper-top"><span>ADUANA MÉXICO</span><span>FORMATO DEMO</span></div>
+              <div class="paper-caption">PEDIMENTO</div>
+              <div class="paper-number" [class.marked]="analyzed">24 48 3021 9001234</div>
+              <div class="paper-meta"><span>FECHA DE ENTRADA</span><b>21 OCT 2026</b></div>
+              <div class="paper-rule"></div>
+              <div class="paper-caption">DATOS DEL IMPORTADOR</div>
+              <div class="paper-row"><span>RFC</span><b>ASN9403159K2</b></div>
+              <div class="paper-row"><span>RÉGIMEN</span><b>IN — TEMPORAL IMMEX</b></div>
+              <div class="paper-rule"></div>
+              <div class="paper-caption">PARTIDAS</div>
+              <div class="paper-table-head"><span>FRACCIÓN / DESCRIPCIÓN</span><span>CANT.</span></div>
+              <div class="paper-item" [class.marked]="analyzed"><span>Resina ABS natural<br><small>Grado inyección</small></span><b>1,200 kg</b></div>
+              <div class="paper-row value-row"><span>VALOR UNITARIO</span><b>3.20 MXN</b></div>
+              <div class="paper-seal">EJEMPLO<br>ILUSTRATIVO</div>
+            </article>
+            <div class="scan-line" *ngIf="analyzing"></div>
           </div>
-        </div>
+          <div class="document-meta"><span class="file-icon"><fa-icon [icon]="faFileLines"></fa-icon></span><div><b>pedimento_ejemplo.pdf</b><small>1 página · Escenario de práctica</small></div><fa-icon class="file-check" *ngIf="analyzed" [icon]="faCheck"></fa-icon></div>
+          <div class="source-note"><fa-icon [icon]="faFileInvoice"></fa-icon><span>Este documento es una muestra para recorrer el ejercicio; no corresponde a una operación real.</span></div>
+        </aside>
+
+        <section class="capture-pane">
+          <div class="pane-heading form-heading"><div><span class="step-label">CAPTURA SUGERIDA</span><h2>Datos de importación</h2></div><span class="field-count" [class.ready]="analyzed">{{ analyzed ? '7 campos sugeridos' : 'Esperando lectura' }}</span></div>
+          <div class="waiting-state" *ngIf="!analyzed && !analyzing"><div class="waiting-icon"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></div><strong>Tu captura aparecerá aquí</strong><span>Inicia la simulación para ver cómo el copiloto llena los datos del pedimento.</span></div>
+          <div class="reading-state" *ngIf="analyzing"><span class="reading-orb"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></span><strong>Revisando el documento</strong><span>Identificando importador, fechas y partidas…</span><div class="reading-track"><i></i></div></div>
+          <div class="suggested-form" *ngIf="analyzed">
+            <div class="suggestion-banner"><fa-icon [icon]="faCheck"></fa-icon><span><b>Datos detectados</b> Revisa las sugerencias antes de usarlas.</span><span class="confidence">Coincidencia alta</span></div>
+            <div class="field-grid">
+              <label class="demo-field"><span>Número de pedimento <small>Detectado</small></span><input [(ngModel)]="draft.numeroPedimento" name="demoNumero" /></label>
+              <label class="demo-field"><span>Fecha de entrada <small>Detectado</small></span><input [(ngModel)]="draft.fecha" name="demoFecha" type="date" /></label>
+              <label class="demo-field full-field"><span>Razón social <small>Relacionada por RFC</small></span><input [(ngModel)]="draft.razonSocial" name="demoRazon" /></label>
+              <label class="demo-field"><span>RFC <small>Detectado</small></span><input [(ngModel)]="draft.rfc" name="demoRfc" /></label>
+            </div>
+            <div class="partida-divider"><span>PARTIDA 01</span><i></i><b>Importación temporal</b></div>
+            <div class="field-grid partida-fields">
+              <label class="demo-field full-field"><span>Material <small>Descripción detectada</small></span><input [(ngModel)]="draft.partidas[0].material" name="demoMaterial" /></label>
+              <label class="demo-field"><span>Unidad</span><input [(ngModel)]="draft.partidas[0].unidad" name="demoUnidad" /></label>
+              <label class="demo-field"><span>Régimen aduanero</span><input [(ngModel)]="draft.partidas[0].regimenAduanero" name="demoRegimen" /></label>
+              <label class="demo-field"><span>Cantidad</span><input [(ngModel)]="draft.partidas[0].cantidad" name="demoCantidad" type="number" min="1" /></label>
+              <label class="demo-field"><span>Valor unitario · MXN</span><input [(ngModel)]="draft.partidas[0].valorUnitarioMxn" name="demoValor" type="number" step="0.01" min="0.01" /></label>
+            </div>
+            <div class="capture-total"><span>Valor estimado de la partida</span><b>{{ lineTotal | currency:'MXN':'symbol':'1.2-2' }}</b></div>
+          </div>
+          <footer class="capture-footer"><div class="review-reminder"><fa-icon [icon]="faCheck"></fa-icon><span>El equipo revisa y confirma antes de guardar.</span></div><button type="button" class="continue-button" [disabled]="!analyzed" (click)="continueToInventory()">Llevar al formulario IMMEX <fa-icon [icon]="faArrowRight"></fa-icon></button></footer>
+        </section>
       </section>
 
-      <section class="closing-banner"><div class="closing-symbol"><fa-icon [icon]="faSparkles"></fa-icon></div><div><span>INNOVACIÓN CON CRITERIO</span><h2>La IA detecta. Tu equipo decide.</h2><p>Más visibilidad para la operación, con trazabilidad y aprobación humana en cada paso.</p></div><div class="closing-pills"><span><fa-icon [icon]="faShieldHalved"></fa-icon> Control humano</span><span><fa-icon [icon]="faFileCircleCheck"></fa-icon> Evidencia trazable</span></div></section>
+      <footer class="demo-disclaimer"><fa-icon [icon]="faWandMagicSparkles"></fa-icon><span>Demostración de asistencia de captura. Los datos son de ejemplo; la plataforma no los guardará hasta que los revises y confirmes en Inventarios / Pedimentos.</span></footer>
     </main>
   `,
   styleUrl: './assistant.page.css',
 })
-export class AssistantPageComponent implements OnInit {
-  private readonly service = inject(ImmexService);
+export class AssistantPageComponent {
+  private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
   protected readonly faWandMagicSparkles = faWandMagicSparkles;
-  protected readonly faSparkles = faWandMagicSparkles;
   protected readonly faArrowRight = faArrowRight;
-  protected readonly faShieldHalved = faShieldHalved;
-  protected readonly faFileInvoice = faFileInvoice;
-  protected readonly faBoxesStacked = faBoxesStacked;
-  protected readonly faFileCircleCheck = faFileCircleCheck;
-  protected readonly faCircleExclamation = faCircleExclamation;
   protected readonly faCheck = faCheck;
+  protected readonly faFileInvoice = faFileInvoice;
+  protected readonly faFileLines = faFileLines;
   protected readonly faRotate = faRotate;
-  protected analysis: ComplianceAssistantResponse | null = null;
-  protected findings: DemoFinding[] = [];
-  protected demoComplete = false;
-  protected running = false;
+  protected analyzing = false;
+  protected analyzed = false;
+  protected draft = this.exampleDraft();
 
-  ngOnInit(): void {
-    // La demo espera una acción explícita para que el usuario vea el análisis suceder.
+  protected get lineTotal(): number {
+    const line = this.draft.partidas[0];
+    return Number(line?.cantidad || 0) * Number(line?.valorUnitarioMxn || 0);
   }
 
-  protected runDemo(): void {
-    if (this.running) return;
-    this.running = true;
-    this.demoComplete = false;
-    this.findings = [];
-    this.analysis = null;
-    const analysisRequest = this.service.complianceAssistant();
+  protected analyzeSample(): void {
+    if (this.analyzing) return;
+    this.analyzed = false;
+    this.analyzing = true;
     window.setTimeout(() => {
-      analysisRequest.subscribe({
-        next: (analysis) => {
-          this.analysis = analysis;
-          this.findings = this.toFindings(analysis);
-          this.finishDemo();
-        },
-        error: () => {
-          this.findings = this.sampleFindings();
-          this.finishDemo();
-        },
-      });
-    }, 850);
+      this.draft = this.exampleDraft();
+      this.analyzing = false;
+      this.analyzed = true;
+      this.cdr.detectChanges();
+    }, 1300);
   }
 
-  private finishDemo(): void {
-    this.running = false;
-    this.demoComplete = true;
+  protected continueToInventory(): void {
+    void this.router.navigateByUrl('/inventory', { state: { draftPedimento: this.draft } });
   }
 
-  private toFindings(result: ComplianceAssistantResponse): DemoFinding[] {
-    const items = result.recommendations.slice(0, 3).map((item): DemoFinding => ({
-      level: item.factBased ? 'critical' : 'review',
-      title: item.problem,
-      detail: item.cause,
-      evidence: item.evidence,
-      action: item.suggestedAction,
-    }));
-    return items.length ? items : this.sampleFindings(true);
-  }
-
-  private sampleFindings(useDemoLabel = false): DemoFinding[] {
-    const label = useDemoLabel ? 'Ejemplo de demostración' : 'Escenario ilustrativo';
-    return [
-      { level: 'critical', title: 'Fecha límite próxima', detail: 'Un material importado se acerca a la fecha límite de retorno y todavía conserva saldo aduanero.', evidence: `${label} · Pedimento 24 48 3021 9001234 · 18 días restantes`, action: 'Confirma el plan de exportación o retorno con el responsable antes de capturar un movimiento.' },
-      { level: 'review', title: 'Cantidad por conciliar', detail: 'La cantidad del archivo del agente y el saldo registrado presentan una diferencia que requiere validación.', evidence: `${label} · Resina ABS natural · Diferencia de 120 kg`, action: 'Compara la partida del pedimento contra el archivo recibido del agente aduanal.' },
-      { level: 'ready', title: 'Captura preparada para revisión', detail: 'Se detectaron los campos del pedimento y se puede preparar un borrador para facilitar la captura.', evidence: `${label} · Número, fecha, RFC y 4 partidas`, action: 'Revisa cada campo y confirma manualmente antes de guardar el registro.' },
-    ];
+  private exampleDraft(): ImportDraft {
+    return {
+      numeroPedimento: '24 48 3021 9001234',
+      fecha: '2026-10-21',
+      razonSocial: 'Aerosistemas del Norte, S.A. de C.V.',
+      rfc: 'ASN9403159K2',
+      partidas: [{
+        partida: '01',
+        material: 'Resina ABS natural · grado inyección',
+        unidad: 'kg',
+        regimenAduanero: 'IMMEX temporal',
+        cantidad: 1200,
+        valorUnitarioMxn: 3.2,
+      }],
+    };
   }
 }

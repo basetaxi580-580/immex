@@ -6,6 +6,14 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ImmexService } from './immex.service';
 import { CollectionSnapshot, ImmexRecord } from './models';
 
+type ImportFormModel = {
+  numeroPedimento: string;
+  fecha: string;
+  razonSocial: string;
+  rfc: string;
+  partidas: Array<{ partida: string; material: string; unidad: string; regimenAduanero: string; cantidad: number; valorUnitarioMxn: number }>;
+};
+
 @Component({
   selector: 'app-inventory-page',
   standalone: true,
@@ -58,11 +66,15 @@ import { CollectionSnapshot, ImmexRecord } from './models';
         </div>
       </section>
 
-      <section class="card import-card" *ngIf="!searchOnly">
+      <section class="card import-card" id="inventory-import-card" *ngIf="!searchOnly">
+        <div class="import-card-title">
         <div class="card-head">
           <h2>Captura de pedimento de importación</h2>
           <span>Alta con partidas múltiples</span>
         </div>
+        <button type="button" class="import-ai-launch" (click)="openAiDemo()"><span>✦</span> Probar captura asistida <b>→</b></button>
+        </div>
+        <div class="ai-draft-notice" *ngIf="draftApplied"><strong>Captura sugerida cargada.</strong> Revisa cada campo y confirma los datos antes de guardar.<button type="button" (click)="draftApplied = false" aria-label="Cerrar aviso">×</button></div>
         <p class="muted import-guidance">Captura los datos tal como aparecen en el pedimento. El RFC se completa al elegir la razón social.</p>
 
         <form class="form" (ngSubmit)="submitImport()" #importForm="ngForm">
@@ -419,6 +431,7 @@ export class InventoryPageComponent implements OnInit {
   error = '';
   importError = '';
   importResult: any = null;
+  draftApplied = false;
   searchTerm = '';
   statusFilter = 'Todos';
   movementFilter = 'Todos';
@@ -431,9 +444,15 @@ export class InventoryPageComponent implements OnInit {
 
   ngOnInit(): void {
     const record = history.state?.editingRecord as ImmexRecord | undefined;
+    const draft = history.state?.draftPedimento as ImportFormModel | undefined;
     if (record && !this.searchOnly) {
       this.editingId = record.id ?? null;
       this.form = { ...record };
+    }
+    if (draft && !this.searchOnly) {
+      this.importFormModel = { ...this.emptyImportForm(), ...draft, partidas: draft.partidas.map((partida) => ({ ...partida })) };
+      this.draftApplied = true;
+      window.setTimeout(() => document.getElementById('inventory-import-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     }
     this.load();
     if (!this.searchOnly) {
@@ -581,10 +600,15 @@ export class InventoryPageComponent implements OnInit {
 
   resetImport(): void {
     this.importFormModel = this.emptyImportForm();
+    this.draftApplied = false;
   }
 
   setImportCompany(razonSocial: string): void {
     this.importFormModel.rfc = this.razonSociales.find((option) => option.nombre === razonSocial)?.rfc ?? '';
+  }
+
+  openAiDemo(): void {
+    void this.router.navigateByUrl('/assistant');
   }
 
   daysLeft(record: ImmexRecord): number {
