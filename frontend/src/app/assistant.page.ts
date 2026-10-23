@@ -3,7 +3,7 @@ import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faArrowRight, faCheck, faFileInvoice, faFileLines, faPaperPlane, faRotate, faUpload, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faCheck, faFileInvoice, faFileLines, faRotate, faUpload, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 
 type ImportPartida = {
   partida: string;
@@ -21,8 +21,6 @@ type ImportDraft = {
   rfc: string;
   partidas: ImportPartida[];
 };
-
-type ChatMessage = { role: 'assistant' | 'user'; text: string };
 
 @Component({
   selector: 'app-assistant-page',
@@ -104,21 +102,6 @@ type ChatMessage = { role: 'assistant' | 'user'; text: string };
         </section>
       </section>
 
-      <section class="chat-assistant" aria-labelledby="chat-title">
-        <header class="chat-heading">
-          <span class="chat-avatar"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></span>
-          <div><span class="step-label">ASISTENTE IMMEX</span><h2 id="chat-title">Platiquemos sobre tu operación</h2></div>
-          <span class="chat-status"><i></i> En línea · demo</span>
-        </header>
-        <div class="chat-messages" aria-live="polite">
-          <article class="chat-message assistant-message"><span class="message-avatar"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></span><p>¡Hola! 👋 Soy tu asistente IMMEX. Para orientarte mejor, ¿de qué trata tu plataforma y qué operaciones quieres gestionar?</p></article>
-          <article class="chat-message" *ngFor="let message of chatMessages" [class.user-message]="message.role === 'user'" [class.assistant-message]="message.role === 'assistant'"><span class="message-avatar" *ngIf="message.role === 'assistant'"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></span><p>{{ message.text }}</p></article>
-          <div class="quick-replies" *ngIf="chatMessages.length === 0"><span>Prueba preguntando:</span><button type="button" (click)="askAssistant('¿Qué puedo hacer en esta plataforma?')">¿Qué puedo hacer aquí?</button><button type="button" (click)="askAssistant('¿Cómo registro un pedimento?')">¿Cómo registro un pedimento?</button></div>
-        </div>
-        <form class="chat-composer" (ngSubmit)="sendChatMessage()"><label class="visually-hidden" for="assistant-message">Escribe tu pregunta</label><input id="assistant-message" name="assistantMessage" [(ngModel)]="chatInput" placeholder="Escribe tu pregunta sobre IMMEX…" autocomplete="off" /><button type="submit" [disabled]="!chatInput.trim()" aria-label="Enviar mensaje"><fa-icon [icon]="faPaperPlane"></fa-icon></button></form>
-        <p class="chat-demo-note">Respuestas de ejemplo para esta demo; no se conecta a un modelo de IA.</p>
-      </section>
-
       <footer class="demo-disclaimer"><fa-icon [icon]="faWandMagicSparkles"></fa-icon><span>Simulación preparada con la factura de prueba. El PDF que elijas activa la experiencia, pero no se procesa con OCR/IA; confirma los datos y completa el pedimento oficial antes de guardar.</span></footer>
     </main>
   `,
@@ -134,13 +117,10 @@ export class AssistantPageComponent {
   protected readonly faFileLines = faFileLines;
   protected readonly faRotate = faRotate;
   protected readonly faUpload = faUpload;
-  protected readonly faPaperPlane = faPaperPlane;
   protected analyzing = false;
   protected analyzed = false;
   protected fileSelected = false;
   protected fileName = '';
-  protected chatInput = '';
-  protected chatMessages: ChatMessage[] = [];
   protected draft = this.exampleDraft();
   protected readonly companyOptions = [
     { nombre: 'Aerosistemas del Norte, S.A. de C.V.', rfc: 'ASN9403159K2' },
@@ -176,31 +156,6 @@ export class AssistantPageComponent {
       this.analyzed = true;
       this.cdr.detectChanges();
     }, 1300);
-  }
-
-  protected askAssistant(question: string): void {
-    this.chatInput = question;
-    this.sendChatMessage();
-  }
-
-  protected sendChatMessage(): void {
-    const question = this.chatInput.trim();
-    if (!question) return;
-    this.chatMessages = [...this.chatMessages, { role: 'user', text: question }];
-    this.chatInput = '';
-    window.setTimeout(() => {
-      this.chatMessages = [...this.chatMessages, { role: 'assistant', text: this.demoReply(question) }];
-      this.cdr.detectChanges();
-      document.querySelector('.chat-messages')?.scrollTo({ top: 9999, behavior: 'smooth' });
-    }, 550);
-  }
-
-  private demoReply(question: string): string {
-    const normalized = question.toLocaleLowerCase('es');
-    if (normalized.includes('pedimento')) return 'Puedes preparar una captura desde Inventarios / Pedimentos. Agrega los datos del pedimento y sus partidas; al analizar una factura, la demo puede sugerir mercancía y cantidad para que las revises antes de transferirlas. La factura por sí sola no sustituye el pedimento oficial.';
-    if (normalized.includes('inventario') || normalized.includes('plataforma') || normalized.includes('hacer') || normalized.includes('trata')) return 'Esta plataforma ayuda a controlar operaciones IMMEX: inventarios, pedimentos, movimientos y saldos de mercancía. También puedes consultar información operativa y preparar registros para revisión. ¿Quieres que te explique cómo comenzar con una factura?';
-    if (normalized.includes('factura') || normalized.includes('archivo') || normalized.includes('pdf')) return 'En esta demo puedes seleccionar un PDF y ver una simulación de captura con los datos de la factura de prueba. La simulación no lee otros archivos con OCR/IA; confirma cantidades, moneda, régimen y los datos del pedimento antes de guardar.';
-    return 'Puedo orientarte sobre inventarios IMMEX, pedimentos y la captura de facturas. Esta respuesta es una simulación de la demo. ¿Qué parte de tu operación quieres revisar?';
   }
 
   protected continueToInventory(): void {

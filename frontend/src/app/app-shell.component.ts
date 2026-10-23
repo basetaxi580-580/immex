@@ -5,6 +5,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { ImmexService } from './immex.service';
 import { UserRoleService } from './user-role.service';
+import { FloatingAssistantComponent } from './floating-assistant.component';
 import { DashboardInventorySummary, DashboardMaterialRow } from './models';
 import { faBars, faBoxesStacked, faChartLine, faChevronLeft, faClockRotateLeft, faClipboardList, faFileCircleCheck, faFileInvoiceDollar, faGear, faHouse, faMagnifyingGlass, faTruckRampBox, faTriangleExclamation, faUserShield, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 
@@ -27,7 +28,7 @@ type SidebarGroup = {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive, RouterOutlet, FontAwesomeModule],
+  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive, RouterOutlet, FontAwesomeModule, FloatingAssistantComponent],
   template: `
     <div class="app-shell">
       <aside class="sidebar" [class.is-collapsed]="!isSidebarOpen">
@@ -140,6 +141,7 @@ type SidebarGroup = {
         </div>
       </section>
     </div>
+    <app-floating-assistant></app-floating-assistant>
   `,
   styleUrl: './app-shell.component.css',
 })
