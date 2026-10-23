@@ -43,7 +43,7 @@ type ChatMessage = { role: 'assistant' | 'user'; text: string };
         <div class="intro-symbol"><fa-icon [icon]="faWandMagicSparkles"></fa-icon></div>
         <div class="intro-copy"><strong>Sube una factura y revisa los datos sugeridos.</strong><span>La demo usa el PDF de prueba compartido y distingue los datos visibles de los campos aduaneros que requieren confirmación.</span></div>
         <input #invoiceInput class="file-input" type="file" accept=".pdf,application/pdf" (change)="onInvoiceSelected($event)" />
-        <button class="upload-button" type="button" (click)="invoiceInput.click()" [disabled]="analyzing"><fa-icon [icon]="faUpload"></fa-icon>Subir factura</button>
+        <button class="upload-button" type="button" (click)="invoiceInput.click()" [disabled]="analyzing"><fa-icon [icon]="faUpload"></fa-icon>Subir documento</button>
         <button class="analyze-button" type="button" (click)="analyzeSample()" [disabled]="analyzing || !fileSelected"><fa-icon [icon]="analyzing ? faRotate : faWandMagicSparkles" [class.spin]="analyzing"></fa-icon>{{ analyzing ? 'Revisando factura…' : analyzed ? 'Analizar de nuevo' : 'Analizar PDF' }}</button>
       </section>
 
